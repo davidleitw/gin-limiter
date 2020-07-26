@@ -14,17 +14,29 @@ func exampleNewClient() {
 		DB:       0,
 	})
 
-	pong, err := rdb.Ping(context.Background()).Result()
+	Context := context.Background()
+
+	pong, err := rdb.Ping(Context).Result()
 	fmt.Println(pong, err)
 
-	err = rdb.Set(context.Background(), "davidleitw", "123", 0).Err()
+	err = rdb.Set(Context, "davidleitw2", "123", 0).Err()
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	err = rdb.Get(context.Background(), "davidlettw").Err()
+	val, err := rdb.Get(Context, "davidleitw2").Result()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("err = ", err)
+	}
+	fmt.Println("value = ", val)
+
+	val2, err := rdb.Get(Context, "NotExistValue").Result()
+	if err == redis.Nil {
+		fmt.Println("val2 not exist")
+	} else if err != nil {
+		fmt.Println("err = ", err)
+	} else {
+		fmt.Println("value2 = ", val2)
 	}
 }
 
