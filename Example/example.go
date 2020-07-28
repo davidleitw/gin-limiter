@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	limiter "github.com/davidleitw/gin-limiter"
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -24,7 +26,20 @@ func exampleNewClient() {
 		fmt.Println(err)
 	}
 
-	val, err := rdb.Get(Context, "davidleitw2").Result()
+	val, err := rdb.Get(Context, "davidleitw2").Int()
+	if err != nil {
+		fmt.Println("err = ", err)
+	}
+	fmt.Println("value = ", val)
+
+	val++
+
+	err = rdb.Set(Context, "davidleitw2", val, 0).Err()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	val, err = rdb.Get(Context, "davidleitw2").Int()
 	if err != nil {
 		fmt.Println("err = ", err)
 	}
@@ -40,6 +55,16 @@ func exampleNewClient() {
 	}
 }
 
+func NewServer() *gin.Engine {
+	server := gin.Default()
+
+	return server
+}
+
 func main() {
 	exampleNewClient()
+	server := NewServer()
+	server.Run()
+
+	l := limiter.LimitController()
 }
