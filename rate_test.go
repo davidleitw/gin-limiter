@@ -56,6 +56,51 @@ func TestNewGlobalRate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "number of command first args <= 0",
+			args: args{
+				command: "-20-m",
+				limit:   250,
+			},
+			want:    GlobalRate{},
+			wantErr: true,
+		},
+		{
+			name: "number of command first args == 0",
+			args: args{
+				command: "0-m",
+				limit:   250,
+			},
+			want:    GlobalRate{},
+			wantErr: true,
+		},
+		{
+			name: "command first args is not number",
+			args: args{
+				command: "zesss-m",
+				limit:   250,
+			},
+			want:    GlobalRate{},
+			wantErr: true,
+		},
+		{
+			name: "limit <= 0",
+			args: args{
+				command: "150-m",
+				limit:   -10,
+			},
+			want:    GlobalRate{},
+			wantErr: true,
+		},
+		{
+			name: "command second args is not time unit.",
+			args: args{
+				command: "20-Z",
+				limit:   30,
+			},
+			want:    GlobalRate{},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

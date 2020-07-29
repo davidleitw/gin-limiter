@@ -32,8 +32,9 @@ var timeDict = map[string]time.Duration{
 	"D": time.Hour * 24,
 }
 
-var FormatError = errors.New("please check the format with your input.")
-var LimitError = errors.New("limit should > 0.")
+var CommandError = errors.New("The command of first number should > 0.")
+var FormatError = errors.New("Please check the format with your input.")
+var LimitError = errors.New("Limit should > 0.")
 
 // NewGlobalRate("10-m", 200)
 // Each 10 minutes single ip address can request 200 times.
@@ -43,15 +44,17 @@ func NewGlobalRate(command string, limit int) (GlobalRate, error) {
 
 	values := strings.Split(command, "-")
 	if len(values) != 2 {
-		log.Println("Some error with your input command!")
+		log.Println("Some error with your input command!, the len of your command is ", len(values))
 		return grate, FormatError
 	}
 
-	grate.Command = command
-
 	unit, err := strconv.Atoi(values[0])
+	log.Printf("unit = %d", unit)
 	if err != nil {
 		return grate, FormatError
+	}
+	if unit <= 0 {
+		return grate, CommandError
 	}
 
 	// limit should > 0
@@ -61,11 +64,12 @@ func NewGlobalRate(command string, limit int) (GlobalRate, error) {
 
 	if t, ok := timeDict[strings.ToUpper(values[1])]; ok {
 		period = time.Duration(unit) * t
-		grate.Period = period
 	} else {
 		return grate, FormatError
 	}
 
+	grate.Command = command
+	grate.Period = period
 	grate.Limit = limit
 	return grate, nil
 }

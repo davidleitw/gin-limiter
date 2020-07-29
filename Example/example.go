@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	limiter "github.com/davidleitw/gin-limiter"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 )
@@ -72,8 +73,8 @@ func main() {
 	fmt.Println(t1.Before(t2))
 	fmt.Println(t1.Before(t0))
 	fmt.Println(t0, t1)
-	// server := NewServer()
-	// server.Run()
+	server := NewServer()
+	server.Run()
 
-	// l := limiter.LimitController()
+	l := limiter.LimitController()
 }
