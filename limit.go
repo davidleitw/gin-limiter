@@ -8,23 +8,31 @@ import (
 )
 
 type LimitController struct {
-	RedisDB *redis.Client
-	GIpRate GlobalRate
-	IpRate  []singleRate
-	Record  bool
+	RedisDB     *redis.Client
+	globalRate  GlobalRate
+	routerRates Rates
+	Record      bool
 }
 
-func DefaultController(rdb *redis.Client, gIp GlobalRate) (*LimitController, error) {
+func createController(rdb *redis.Client, gr GlobalRate, sr []singleRate, record bool) *LimitController {
+	return &LimitController{
+		RedisDB:     rdb,
+		globalRate:  gr,
+		routerRates: sr,
+		Record:      record,
+	}
+}
+
+func DefaultController(rdb *redis.Client, gr GlobalRate) (*LimitController, error) {
 	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
 		log.Println("redis server doesn't collect!")
 		return nil, err
 	}
 
-	return &LimitController{
-		RedisDB: rdb,
-		GIpRate: gIp,
-		IpRate:  nil,
-		Record:  false,
-	}, nil
+	return createController(rdb, gr, nil, false), nil
+}
+
+func (lc *LimitController) UpdateGlobalRate(gr GlobalRate) {
+	lc.globalRate = gr
 }

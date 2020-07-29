@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
-	limiter "github.com/davidleitw/gin-limiter"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 )
@@ -63,8 +63,17 @@ func NewServer() *gin.Engine {
 
 func main() {
 	exampleNewClient()
-	server := NewServer()
-	server.Run()
+	t0 := time.Now()
+	t1 := time.Now()
+	//设置期间经历了50秒时间
+	t2 := time.Now().Add(time.Second * 50)
+	fmt.Println(t2.Sub(t1)) //t2与t1相差： 50s
+	fmt.Println(t1.Sub(t2))
+	fmt.Println(t1.Before(t2))
+	fmt.Println(t1.Before(t0))
+	fmt.Println(t0, t1)
+	// server := NewServer()
+	// server.Run()
 
-	l := limiter.LimitController()
+	// l := limiter.LimitController()
 }
