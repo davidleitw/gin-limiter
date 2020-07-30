@@ -23,16 +23,39 @@ func createController(rdb *redis.Client, gr GlobalRate, sr []singleRate, record 
 	}
 }
 
-func DefaultController(rdb *redis.Client, gr GlobalRate) (*LimitController, error) {
+func DefaultController(rdb *redis.Client, command string, limit int) (*LimitController, error) {
 	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
 		log.Println("redis server doesn't collect!")
 		return nil, err
 	}
 
-	return createController(rdb, gr, nil, false), nil
+	gRate, err := newGlobalRate(command, limit)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return createController(rdb, gRate, nil, false), nil
 }
 
-func (lc *LimitController) UpdateGlobalRate(gr GlobalRate) {
-	lc.globalRate = gr
+// lc.UpdateGlobalRate("24-H", 200) => each 24 hours single ip adress can request 200 times for all server router.
+func (lc *LimitController) UpdateGlobalRate(command string, limit int) error {
+	gRate, err := newGlobalRate(command, limit)
+	if err != nil {
+		return err
+	}
+
+	lc.globalRate = gRate
+	return nil
+}
+
+func (lc *LimitController) Add(path, command string, limit int) error {
+	sRate, err := newSingleRate(path, command, limit)
+	if err != nil {
+		return err
+	}
+
+	lc.routerRates.Append(sRate)
+	return nil
 }
