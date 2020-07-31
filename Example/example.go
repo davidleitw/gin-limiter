@@ -1,12 +1,24 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 
 	limiter "github.com/davidleitw/gin-limiter"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 )
+
+func Test() {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	pong, _ := rdb.Ping(context.Background()).Result()
+	fmt.Println(pong)
+}
 
 func NewServer() *gin.Engine {
 	server := gin.Default()
@@ -15,11 +27,13 @@ func NewServer() *gin.Engine {
 		Password: "",
 		DB:       0,
 	})
-	limitControl, _ := limiter.DefaultController(rdb, "24-H", 2000)
+	limitControl, _ := limiter.DefaultController(rdb, "24-H", 21000)
+
+	server.POST("/post1", post1) // /post1
 	limitControl.Add("/post", "20-M", 120)
 
-	server.POST("/post1", post1)    // /post1
 	server.POST("api/post2", post2) // /api/post2
+	limitControl.Add("api/post2", "15-H", 200)
 	return server
 }
 
@@ -37,4 +51,5 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+	// Test()
 }

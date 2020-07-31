@@ -53,7 +53,6 @@ func newGlobalRate(command string, limit int) (GlobalRate, error) {
 	}
 
 	unit, err := strconv.Atoi(values[0])
-	log.Printf("unit = %d", unit)
 	if err != nil {
 		return gRate, FormatError
 	}
@@ -89,7 +88,6 @@ func newSingleRate(path, command string, limit int) (singleRate, error) {
 	}
 
 	unit, err := strconv.Atoi(values[0])
-	log.Printf("unit = %d", unit)
 	if err != nil {
 		return sRate, FormatError
 	}

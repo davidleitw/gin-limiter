@@ -14,7 +14,7 @@ type LimitController struct {
 	Record      bool
 }
 
-func createController(rdb *redis.Client, gr GlobalRate, sr []singleRate, record bool) *LimitController {
+func createController(rdb *redis.Client, gr GlobalRate, sr Rates, record bool) *LimitController {
 	return &LimitController{
 		RedisDB:     rdb,
 		globalRate:  gr,
@@ -24,13 +24,22 @@ func createController(rdb *redis.Client, gr GlobalRate, sr []singleRate, record 
 }
 
 func DefaultController(rdb *redis.Client, command string, limit int) (*LimitController, error) {
+	// Check redis status.
 	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
 		log.Println("redis server doesn't collect!")
 		return nil, err
 	}
 
+	// Create GlobalRate object for controller.
 	gRate, err := newGlobalRate(command, limit)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	// Set base limit in redis.
+	err = rdb.Set(context.Background(), "limit", gRate.Limit, 0).Err()
 	if err != nil {
 		log.Println(err)
 		return nil, err
