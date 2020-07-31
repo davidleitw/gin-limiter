@@ -104,7 +104,7 @@ func TestNewGlobalRate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewGlobalRate(tt.args.command, tt.args.limit)
+			got, err := newGlobalRate(tt.args.command, tt.args.limit)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewGlobalRate() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -59,8 +59,17 @@ func (lc *LimitController) UpdateGlobalRate(command string, limit int) error {
 	return nil
 }
 
-func (lc *LimitController) Add(path, command string, limit int) error {
-	sRate, err := newSingleRate(path, command, limit)
+func (lc *LimitController) GetGlobalLimit() int {
+	return lc.globalRate.Limit
+}
+
+// Get single router limit with path.
+func (lc *LimitController) GetSingleLimit(path, method string) int {
+	return lc.routerRates.getLimit(path, method)
+}
+
+func (lc *LimitController) Add(path, command, method string, limit int) error {
+	sRate, err := newSingleRate(path, command, method, limit)
 	if err != nil {
 		return err
 	}

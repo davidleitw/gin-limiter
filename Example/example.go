@@ -30,10 +30,10 @@ func NewServer() *gin.Engine {
 	limitControl, _ := limiter.DefaultController(rdb, "24-H", 21000)
 
 	server.POST("/post1", post1) // /post1
-	limitControl.Add("/post", "20-M", 120)
+	_ = limitControl.Add("/post", "20-M", "post", 120)
 
 	server.POST("api/post2", post2) // /api/post2
-	limitControl.Add("api/post2", "15-H", 200)
+	_ = limitControl.Add("api/post2", "15-H", "post", 200)
 	return server
 }
 

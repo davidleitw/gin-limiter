@@ -18,6 +18,7 @@ type GlobalRate struct {
 // local ip rate
 type singleRate struct {
 	Path    string
+	Method  string
 	Command string
 	Period  time.Duration
 	Limit   int
@@ -29,6 +30,27 @@ func (rs Rates) Append(sr singleRate) {
 	rs = append(rs, sr)
 }
 
+func (rs Rates) getLimit(path, method string) int {
+	for _, rate := range rs {
+		if (rate.Path == path) && (rate.Method == method) {
+			return rate.Limit
+		}
+	}
+	return -1
+}
+
+var methodDict = map[string]bool{
+	"GET":     true,
+	"PUT":     true,
+	"POST":    true,
+	"HEAD":    true,
+	"TRACE":   true,
+	"PATCH":   true,
+	"DELETE":  true,
+	"CONNECT": true,
+	"OPTIONS": true,
+}
+
 var timeDict = map[string]time.Duration{
 	"S": time.Second,
 	"M": time.Minute,
@@ -36,6 +58,7 @@ var timeDict = map[string]time.Duration{
 	"D": time.Hour * 24,
 }
 
+var MethodError = errors.New("Please check the method is one of http method.")
 var CommandError = errors.New("The command of first number should > 0.")
 var FormatError = errors.New("Please check the format with your input.")
 var LimitError = errors.New("Limit should > 0.")
@@ -77,7 +100,7 @@ func newGlobalRate(command string, limit int) (GlobalRate, error) {
 	return gRate, nil
 }
 
-func newSingleRate(path, command string, limit int) (singleRate, error) {
+func newSingleRate(path, command, method string, limit int) (singleRate, error) {
 	var sRate singleRate
 	var period time.Duration
 
@@ -106,7 +129,12 @@ func newSingleRate(path, command string, limit int) (singleRate, error) {
 		return sRate, FormatError
 	}
 
+	if _, ok := methodDict[strings.ToUpper(method)]; !ok {
+		return sRate, MethodError
+	}
+
 	sRate.Path = path
+	sRate.Method = method
 	sRate.Command = command
 	sRate.Period = period
 	sRate.Limit = limit
