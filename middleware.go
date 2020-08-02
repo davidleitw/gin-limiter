@@ -31,8 +31,8 @@ func LimitMiddle(lc *LimitController) gin.HandlerFunc {
 		if err != nil {
 			fmt.Println("Script run error = ", err)
 		}
+		fmt.Println("result = ", result)
 
-		fmt.Println(result)
 		ctx.Next()
 	}
 }

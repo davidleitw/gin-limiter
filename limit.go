@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -14,6 +13,7 @@ type LimitController struct {
 	globalRate  *GlobalRate
 	routerRates Rates
 	Record      bool
+	script      string
 }
 
 func createController(rdb *redis.Client, gr *GlobalRate, sr Rates, record bool) *LimitController {
@@ -22,6 +22,7 @@ func createController(rdb *redis.Client, gr *GlobalRate, sr Rates, record bool) 
 		globalRate:  gr,
 		routerRates: sr,
 		Record:      record,
+		script:      "",
 	}
 }
 
@@ -48,6 +49,14 @@ func DefaultController(rdb *redis.Client, command string, limit int) (*LimitCont
 	}
 
 	return createController(rdb, gRate, Rates{}, false), nil
+}
+
+func (lc *LimitController) SetShaScript(sha string) {
+	lc.script = sha
+}
+
+func (lc *LimitController) GetShaScript() string {
+	return lc.script
 }
 
 // lc.UpdateGlobalRate("24-H", 200) => each 24 hours single ip adress can request 200 times for all server router.
@@ -84,6 +93,13 @@ func (lc *LimitController) Init() {
 	lc.globalRate.UpdateDeadLine()
 	lc.routerRates.UpdateAllDeadLine()
 
-	result := time.Unix(lc.globalRate.GetDeadLine(), 0)
-	fmt.Println(result.Format(TimeFormat))
+	SHA, err := lc.RedisDB.ScriptLoad(context.Background(), TestScript).Result()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	lc.SetShaScript(SHA)
+
+	TestResult := lc.RedisDB.EvalSha(context.Background(), SHA, []string{"key1"}, []interface{}{"arg1"})
+	fmt.Println("Test Result = ", TestResult.Val())
 }
