@@ -11,12 +11,12 @@ import (
 
 type LimitController struct {
 	RedisDB     *redis.Client
-	globalRate  GlobalRate
+	globalRate  *GlobalRate
 	routerRates Rates
 	Record      bool
 }
 
-func createController(rdb *redis.Client, gr GlobalRate, sr Rates, record bool) *LimitController {
+func createController(rdb *redis.Client, gr *GlobalRate, sr Rates, record bool) *LimitController {
 	return &LimitController{
 		RedisDB:     rdb,
 		globalRate:  gr,
@@ -81,9 +81,8 @@ func (lc *LimitController) Add(path, command, method string, limit int) error {
 }
 
 func (lc *LimitController) Run() {
-	now := time.Now()
-	global := now.Add(lc.globalRate.Period).Unix()
-	lc.globalRate.SetDeadLine(global)
+	lc.globalRate.UpdateDeadLine()
+	lc.routerRates.UpdateDeadLine()
 
 	result := time.Unix(lc.globalRate.GetDeadLine(), 0)
 	fmt.Println(result.Format(TimeFormat))
