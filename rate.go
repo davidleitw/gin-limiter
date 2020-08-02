@@ -30,8 +30,8 @@ func (gr *GlobalRate) GetDeadLine() int64 {
 
 // local ip rate
 type singleRate struct {
-	Path           string
-	Method         string
+	Path           string // router path
+	Method         string // router method
 	Command        string
 	Period         time.Duration
 	Limit          int
@@ -39,34 +39,13 @@ type singleRate struct {
 	deadLineFormat string
 }
 
-func (sr *singleRate) UpdateDeadLine() {
+func (sr *singleRate) updateDeadLine() {
 	sr.deadLine = time.Now().Add(sr.Period).Unix()
 	sr.deadLineFormat = time.Unix(sr.deadLine, 0).Format(TimeFormat)
 }
 
-func (sr *singleRate) GetDeadLine() int64 {
+func (sr *singleRate) getDeadLine() int64 {
 	return sr.deadLine
-}
-
-type Rates []*singleRate
-
-func (rs Rates) Append(sr *singleRate) {
-	rs = append(rs, sr)
-}
-
-func (rs Rates) getLimit(path, method string) int {
-	for _, rate := range rs {
-		if (rate.Path == path) && (rate.Method == method) {
-			return rate.Limit
-		}
-	}
-	return -1
-}
-
-func (rs Rates) UpdateDeadLine() {
-	for _, rate := range rs {
-		rate.UpdateDeadLine()
-	}
 }
 
 var methodDict = map[string]bool{
@@ -169,4 +148,46 @@ func newSingleRate(path, command, method string, limit int) (*singleRate, error)
 	sRate.Period = period
 	sRate.Limit = limit
 	return &sRate, nil
+}
+
+// type Rates []*singleRate
+type Rates struct {
+	items []*singleRate
+}
+
+func (rs *Rates) Append(sr *singleRate) {
+	rs.items = append(rs.items, sr)
+}
+
+func (rs *Rates) getLimit(path, method string) int {
+	for _, rate := range rs.items {
+		if strings.EqualFold(rate.Path, path) && strings.EqualFold(rate.Method, method) {
+			return rate.Limit
+		}
+	}
+	return -1
+}
+
+func (rs *Rates) GetDeadLine(path, method string) int64 {
+	for _, rate := range rs.items {
+		if strings.EqualFold(rate.Path, path) && strings.EqualFold(rate.Method, method) {
+			return rate.getDeadLine()
+		}
+	}
+	return -1
+}
+
+func (rs *Rates) UpdateDeadLine(path, method string) {
+	for _, rate := range rs.items {
+		if strings.EqualFold(rate.Path, path) && strings.EqualFold(rate.Method, method) {
+			rate.updateDeadLine()
+		}
+	}
+}
+
+// 初始化時對所有子limiter做Deadline的更新
+func (rs *Rates) UpdateAllDeadLine() {
+	for _, rate := range rs.items {
+		rate.updateDeadLine()
+	}
 }

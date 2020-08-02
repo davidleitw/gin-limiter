@@ -47,7 +47,7 @@ func DefaultController(rdb *redis.Client, command string, limit int) (*LimitCont
 		return nil, err
 	}
 
-	return createController(rdb, gRate, nil, false), nil
+	return createController(rdb, gRate, Rates{}, false), nil
 }
 
 // lc.UpdateGlobalRate("24-H", 200) => each 24 hours single ip adress can request 200 times for all server router.
@@ -70,19 +70,19 @@ func (lc *LimitController) GetSingleLimit(path, method string) int {
 	return lc.routerRates.getLimit(path, method)
 }
 
+// 根據router資訊新增一個對於該router的limiter
 func (lc *LimitController) Add(path, command, method string, limit int) error {
 	sRate, err := newSingleRate(path, command, method, limit)
 	if err != nil {
 		return err
 	}
-
 	lc.routerRates.Append(sRate)
 	return nil
 }
 
-func (lc *LimitController) Run() {
+func (lc *LimitController) Init() {
 	lc.globalRate.UpdateDeadLine()
-	lc.routerRates.UpdateDeadLine()
+	lc.routerRates.UpdateAllDeadLine()
 
 	result := time.Unix(lc.globalRate.GetDeadLine(), 0)
 	fmt.Println(result.Format(TimeFormat))

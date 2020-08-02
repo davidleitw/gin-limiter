@@ -5,22 +5,34 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 )
 
 func LimitMiddle(lc *LimitController) gin.HandlerFunc {
+	lc.Init()
+
 	return func(ctx *gin.Context) {
 		now := time.Now().Unix()
 		path := ctx.FullPath()
 		method := ctx.Request.Method
 		ipAddress := ctx.ClientIP()
 
-		globalIndex := "Source:" + ipAddress     // Source:123.456.78.9
-		singleIndex := path + method + ipAddress // /a/postpost/123.456.78.9
-		limit := lc.GetSingleLimit(path, method)
+		globalKey := "Source:" + ipAddress // Source:123.456.78.9
 		globalLimit := lc.GetGlobalLimit()
 
-		fmt.Println(ipAddress, now, globalIndex, singleIndex, limit, globalLimit)
-		// good request
+		singleKey := path + "/" + method + "/" + ipAddress // /a/post/post/123.456.78.9
+		singleLimit := lc.GetSingleLimit(path, method)
+
+		script := redis.NewScript(Script)
+		args := []interface{}{now, globalLimit, singleLimit}
+		keys := []string{globalKey, singleKey}
+
+		result, err := script.Run(ctx, lc.RedisDB, keys, args).Result()
+		if err != nil {
+			fmt.Println("Script run error = ", err)
+		}
+
+		fmt.Println(result)
 		ctx.Next()
 	}
 }
