@@ -2,7 +2,9 @@ package limiter
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -76,4 +78,13 @@ func (lc *LimitController) Add(path, command, method string, limit int) error {
 
 	lc.routerRates.Append(sRate)
 	return nil
+}
+
+func (lc *LimitController) Run() {
+	now := time.Now()
+	global := now.Add(lc.globalRate.Period).Unix()
+	lc.globalRate.SetDeadLine(global)
+
+	result := time.Unix(lc.globalRate.GetDeadLine(), 0)
+	fmt.Println(result.Format(TimeFormat))
 }

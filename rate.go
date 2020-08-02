@@ -2,17 +2,31 @@ package limiter
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 )
 
+const TimeFormat = "2006-01-02 15:04:05"
+
 // global ip rate
 type GlobalRate struct {
-	Command string
-	Period  time.Duration
-	Limit   int
+	Command  string
+	Period   time.Duration
+	Limit    int
+	deadLine int64
+}
+
+func (gr *GlobalRate) SetDeadLine(deadline int64) {
+	if deadline > 0 {
+		gr.deadLine = deadline
+	}
+}
+
+func (gr GlobalRate) GetDeadLine() int64 {
+	return gr.deadLine
 }
 
 // local ip rate
@@ -28,6 +42,7 @@ type Rates []singleRate
 
 func (rs Rates) Append(sr singleRate) {
 	rs = append(rs, sr)
+	fmt.Println(rs)
 }
 
 func (rs Rates) getLimit(path, method string) int {

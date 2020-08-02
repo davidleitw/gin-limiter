@@ -1,9 +1,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
+	"time"
 
 	limiter "github.com/davidleitw/gin-limiter"
 	"github.com/gin-gonic/gin"
@@ -16,8 +16,17 @@ func Test() {
 		Password: "",
 		DB:       0,
 	})
-	pong, _ := rdb.Ping(context.Background()).Result()
-	fmt.Println(pong)
+
+	now := time.Now().Unix()
+	compare := time.Unix(now, 20000)
+
+	t := time.Now().Add(20 * time.Minute).Unix()
+	tc := time.Unix(t, 0)
+	fmt.Println("tc = ", tc.Format(limiter.TimeFormat))
+
+	fmt.Println("now = ", now, " compare time = ", compare)
+	fmt.Println(rdb)
+
 }
 
 func NewServer() *gin.Engine {
@@ -34,6 +43,9 @@ func NewServer() *gin.Engine {
 
 	server.POST("api/post2", post2) // /api/post2
 	_ = limitControl.Add("api/post2", "15-H", "post", 200)
+
+	server.POST("/post3", post3)
+	limitControl.Run()
 	return server
 }
 
@@ -45,8 +57,13 @@ func post2(ctx *gin.Context) {
 	ctx.String(200, ctx.FullPath())
 }
 
+func post3(ctx *gin.Context) {
+	ctx.String(200, ctx.ClientIP())
+}
+
 func main() {
 	server := NewServer()
+
 	err := server.Run(":8080")
 	if err != nil {
 		log.Println(err)
