@@ -41,8 +41,12 @@ func LimitMiddle(lc *LimitController) gin.HandlerFunc {
 		keys := []string{globalKey, singleKey}
 
 		result := lc.RedisDB.EvalSha(context.Background(), lc.GetShaScript(), keys, args)
-		log.Println(result)
+		log.Println("result = ", result.Val())
+		// results := result.Val().([]interface{})
+		// globalIpCount := results[0].(int64)
+		// singleIpCount := results[1].(int64)
 
+		// log.Printf("global ip count = %d, single ip count = %d\n", globalIpCount, singleIpCount)
 		ctx.Next()
 	}
 }

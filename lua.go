@@ -45,12 +45,24 @@ const Script = `
 	end
 
 
-	local gc = tonumber(IpGlobalInfo[2]) -- global count number
-	local sc = tonumber(IpSingleInfo[2]) -- single count number
+	local globalCount = tonumber(IpGlobalInfo[2]) -- global count number
+	local singleCount = tonumber(IpSingleInfo[2]) -- single count number
 
-	if gc >= 
+	if globalCount < globalLimit then 
+		local NewglobalCount = redis.call('HINCRBY', globalKey, "Count", 1)
+		result[1] = globalLimit - NewglobalCount
+	else
+		result[1] = -1
+	end
+	
+	if singleCount < singleLimit then 
+		local NewsingleCount = redis.call('HINCRNY', singleKey, "Count", 1)
+		result[2] = singleLimit - NewsingleCount
+	else 
+		result[2] = -1
+	end
 
-
+	return result
 `
 
 const TestScript = `

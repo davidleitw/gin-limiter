@@ -93,13 +93,14 @@ func (lc *LimitController) Init() {
 	lc.globalRate.UpdateDeadLine()
 	lc.routerRates.UpdateAllDeadLine()
 
-	SHA, err := lc.RedisDB.ScriptLoad(context.Background(), TestScript).Result()
+	SHA, err := lc.RedisDB.ScriptLoad(context.Background(), Script).Result()
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	lc.SetShaScript(SHA)
-
-	TestResult := lc.RedisDB.EvalSha(context.Background(), SHA, []string{"key1"}, []interface{}{"arg1"})
-	fmt.Println("Test Result = ", TestResult.Val())
+	// TestResult := lc.RedisDB.EvalSha(context.Background(), SHA, []string{"key1"}, []interface{}{"arg1"})
+	// fmt.Println("Test Result = ", TestResult.Val())
+	// t := TestResult.Val().([]interface{})
+	// fmt.Println("TestResult[0] = ", t)
 }
