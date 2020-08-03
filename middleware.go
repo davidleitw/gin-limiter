@@ -1,11 +1,11 @@
 package limiter
 
 import (
-	"fmt"
+	"context"
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
 )
 
 func LimitMiddle(lc *LimitController) gin.HandlerFunc {
@@ -21,31 +21,27 @@ func LimitMiddle(lc *LimitController) gin.HandlerFunc {
 		ipAddress := ctx.ClientIP()
 
 		globalKey := "Source:" + ipAddress // Source:123.456.78.9
-		globalLimit := lc.GetGlobalLimit()
-		globalDeadLine := lc.globalRate.GetDeadLine()
+		globalLimit := lc.GetGlobalLimit() // Global 限制次數
+		// globalDeadLine := lc.globalRate.GetDeadLine()
 
-		singleKey := path + "/" + method + "/" + ipAddress // /a/post/post/123.456.78.9
-		singleLimit := lc.GetSingleLimit(path, method)
-		singleDeadLine := lc.routerRates.GetDeadLine(path, method)
+		singleKey := path + "/" + method + ":" + ipAddress // /a/post/post:123.456.78.9
+		singleLimit := lc.GetSingleLimit(path, method)     // Single router 限制次數
+		// singleDeadLine := lc.routerRates.GetDeadLine(path, method)
 
-		if now > globalDeadLine {
+		if now > lc.globalRate.GetDeadLine() {
 			globalExpired = "true"
-			lc.globalRate.UpdateDeadLine()
+			lc.globalRate.UpdateDeadLine() // 更新DeadLine
 		}
-		if now > singleDeadLine {
+		if now > lc.routerRates.GetDeadLine(path, method) {
 			singleExpired = "true"
-			lc.routerRates.UpdateDeadLine(path, method)
+			lc.routerRates.UpdateDeadLine(path, method) // 更新單一path DeadLine
 		}
 
-		script := redis.NewScript(Script)
 		args := []interface{}{now, globalLimit, singleLimit, globalExpired, singleExpired}
 		keys := []string{globalKey, singleKey}
 
-		result, err := script.Run(ctx, lc.RedisDB, keys, args).Result()
-		if err != nil {
-			fmt.Println("Script run error = ", err)
-		}
-		fmt.Println("result = ", result)
+		result := lc.RedisDB.EvalSha(context.Background(), lc.GetShaScript(), keys, args)
+		log.Println(result)
 
 		ctx.Next()
 	}
