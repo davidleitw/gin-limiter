@@ -11,12 +11,15 @@ const Script = `
 	local IpGlobalInfo = redis.call('HGETALL', globalKey)
 	local IpSingleInfo = redis.call('HGETALL', singleKey)
 	
+	local globalLimit = tonumber(ARGV[2])
+	local singleLimit = tonumber(ARGV[3])
+
 	-- 該Ip第一次訪問
 	if #IpGlobalInfo == 0 then
 		redis.call('HMSET', globalKey, "Count", 1)
 		redis.call('HMSET', singleKey, "Count", 1)
-		result[1] = globalLimit - 1 -- global 剩餘次數
-		result[2] = singleLimit - 1 -- single 剩餘次數
+		result[1] = globalLimit - 1 
+		result[2] = singleLimit - 1 
 		return result
 	end
 
@@ -24,10 +27,10 @@ const Script = `
 	if #IpSingleInfo == 0 then 
 		redis.call('HMSET', singleKey, "Count", 1)
 		result[2] = singleLimit - 1
+		IpSingleInfo = redis.call('HGETALL', singleKey)
 	end
 
-	local globalLimit = tonumber(ARGV[2])
-	local singleLimit = tonumber(ARGV[3])
+	local IpSingleInfo = redis.call('HGETALL', singleKey)
 	local globalExpired = ARGV[4]
 	local singleExpired = ARGV[5]
 
@@ -45,8 +48,8 @@ const Script = `
 	end
 
 
-	local globalCount = tonumber(IpGlobalInfo[2]) -- global count number
-	local singleCount = tonumber(IpSingleInfo[2]) -- single count number
+	local globalCount = tonumber(IpGlobalInfo[2]) 
+	local singleCount = tonumber(IpSingleInfo[2]) 
 
 	if globalCount < globalLimit then 
 		local NewglobalCount = redis.call('HINCRBY', globalKey, "Count", 1)
@@ -56,7 +59,7 @@ const Script = `
 	end
 	
 	if singleCount < singleLimit then 
-		local NewsingleCount = redis.call('HINCRNY', singleKey, "Count", 1)
+		local NewsingleCount = redis.call('HINCRBY', singleKey, "Count", 1)
 		result[2] = singleLimit - NewsingleCount
 	else 
 		result[2] = -1

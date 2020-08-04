@@ -36,7 +36,7 @@ func LimitMiddle(lc *LimitController) gin.HandlerFunc {
 			singleExpired = "true"
 			lc.routerRates.UpdateDeadLine(path, method) // 更新單一path DeadLine
 		}
-
+		log.Println(globalKey, singleKey)
 		args := []interface{}{now, globalLimit, singleLimit, globalExpired, singleExpired}
 		keys := []string{globalKey, singleKey}
 
