@@ -48,6 +48,10 @@ func (sr *singleRate) getDeadLine() int64 {
 	return sr.deadLine
 }
 
+func (sr *singleRate) getDeadLineFormat() string {
+	return sr.deadLineFormat
+}
+
 var methodDict = map[string]bool{
 	"GET":     true,
 	"PUT":     true,
@@ -175,6 +179,15 @@ func (rs *Rates) GetDeadLine(path, method string) int64 {
 		}
 	}
 	return -1
+}
+
+func (rs *Rates) GetDeadLineFormat(path, method string) string {
+	for _, rate := range rs.items {
+		if strings.EqualFold(rate.Path, path) && strings.EqualFold(rate.Method, method) {
+			return rate.getDeadLineFormat()
+		}
+	}
+	return ""
 }
 
 func (rs *Rates) UpdateDeadLine(path, method string) {

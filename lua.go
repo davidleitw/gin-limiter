@@ -9,7 +9,6 @@ const Script = `
 	local singleKey = KEYS[2]
 	
 	local IpGlobalInfo = redis.call('HGETALL', globalKey)
-	local IpSingleInfo = redis.call('HGETALL', singleKey)
 	
 	local globalLimit = tonumber(ARGV[2])
 	local singleLimit = tonumber(ARGV[3])
@@ -23,14 +22,13 @@ const Script = `
 		return result
 	end
 
+	local IpSingleInfo = redis.call('HGETALL', singleKey)
 	-- 從來沒有訪問過這個path
 	if #IpSingleInfo == 0 then 
 		redis.call('HMSET', singleKey, "Count", 1)
 		result[2] = singleLimit - 1
-		IpSingleInfo = redis.call('HGETALL', singleKey)
 	end
 
-	local IpSingleInfo = redis.call('HGETALL', singleKey)
 	local globalExpired = ARGV[4]
 	local singleExpired = ARGV[5]
 

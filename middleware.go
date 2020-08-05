@@ -36,11 +36,12 @@ func LimitMiddle(lc *LimitController) gin.HandlerFunc {
 			singleExpired = "true"
 			lc.routerRates.UpdateDeadLine(path, method) // 更新單一path DeadLine
 		}
-		log.Println(globalKey, singleKey)
+
 		args := []interface{}{now, globalLimit, singleLimit, globalExpired, singleExpired}
 		keys := []string{globalKey, singleKey}
 
 		result := lc.RedisDB.EvalSha(context.Background(), lc.GetShaScript(), keys, args)
+		log.Printf("Request Information: global{Key:%s, Limit:%d} single{Key:%s, Limit:%d}\n", globalKey, globalLimit, singleKey, singleLimit)
 		log.Println("result = ", result.Val())
 		// results := result.Val().([]interface{})
 		// globalIpCount := results[0].(int64)
