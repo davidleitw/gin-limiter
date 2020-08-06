@@ -12,8 +12,8 @@ func LimitMiddle(lc *LimitController) gin.HandlerFunc {
 	lc.Init()
 
 	return func(ctx *gin.Context) {
-		var globalExpired string = "false"
-		var singleExpired string = "false"
+		var globalExpired bool = false
+		var singleExpired bool = false
 
 		now := time.Now().Unix()
 		path := ctx.FullPath()
@@ -29,11 +29,11 @@ func LimitMiddle(lc *LimitController) gin.HandlerFunc {
 		// singleDeadLine := lc.routerRates.GetDeadLine(path, method)
 
 		if now > lc.globalRate.GetDeadLine() {
-			globalExpired = "true"
+			globalExpired = true
 			lc.globalRate.UpdateDeadLine() // 更新DeadLine
 		}
 		if now > lc.routerRates.GetDeadLine(path, method) {
-			singleExpired = "true"
+			singleExpired = true
 			lc.routerRates.UpdateDeadLine(path, method) // 更新單一path DeadLine
 		}
 
@@ -44,7 +44,7 @@ func LimitMiddle(lc *LimitController) gin.HandlerFunc {
 
 		if lc.Mode() == "debug" {
 			log.Printf("now: %d, global deadline = %d, single router deadline = %d\n", now, lc.globalRate.GetDeadLine(), lc.routerRates.GetDeadLine(path, method))
-			log.Printf("global expired = %s, single expired = %s\n", globalExpired, singleExpired)
+			log.Printf("global expired = %t, single expired = %t\n", globalExpired, singleExpired)
 			log.Printf("Request Information: global{Key:%s, Limit:%d} single{Key:%s, Limit:%d}\n", globalKey, globalLimit, singleKey, singleLimit)
 			log.Println("result = ", result.Val())
 		}
