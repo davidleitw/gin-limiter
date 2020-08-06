@@ -45,7 +45,6 @@ const Script = `
 		end
 	end
 
-
 	local globalCount = tonumber(IpGlobalInfo[2]) 
 	local singleCount = tonumber(IpSingleInfo[2]) 
 
