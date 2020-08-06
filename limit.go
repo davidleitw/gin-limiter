@@ -14,19 +14,21 @@ type LimitController struct {
 	routerRates Rates
 	Record      bool
 	script      string
+	mode        string
 }
 
-func createController(rdb *redis.Client, gr *GlobalRate, sr Rates, record bool) *LimitController {
+func createController(rdb *redis.Client, gr *GlobalRate, sr Rates, record bool, mode string) *LimitController {
 	return &LimitController{
 		RedisDB:     rdb,
 		globalRate:  gr,
 		routerRates: sr,
 		Record:      record,
 		script:      "",
+		mode:        mode,
 	}
 }
 
-func DefaultController(rdb *redis.Client, command string, limit int) (*LimitController, error) {
+func DefaultController(rdb *redis.Client, command string, limit int, mode string) (*LimitController, error) {
 	// Check redis status.
 	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
@@ -48,7 +50,11 @@ func DefaultController(rdb *redis.Client, command string, limit int) (*LimitCont
 		return nil, err
 	}
 
-	return createController(rdb, gRate, Rates{}, false), nil
+	return createController(rdb, gRate, Rates{}, false, mode), nil
+}
+
+func (lc *LimitController) Mode() string {
+	return lc.mode
 }
 
 func (lc *LimitController) SetShaScript(sha string) {

@@ -3,15 +3,13 @@ package limiter
 const Script = `
 	local result = {}
 		
-	local now = tonumber(ARGV[1]) -- 現在時間
-	
 	local globalKey = KEYS[1] 
 	local singleKey = KEYS[2]
 	
 	local IpGlobalInfo = redis.call('HGETALL', globalKey)
 	
-	local globalLimit = tonumber(ARGV[2])
-	local singleLimit = tonumber(ARGV[3])
+	local globalLimit = tonumber(ARGV[1])
+	local singleLimit = tonumber(ARGV[2])
 
 	-- 該Ip第一次訪問
 	if #IpGlobalInfo == 0 then
@@ -19,6 +17,7 @@ const Script = `
 		redis.call('HMSET', singleKey, "Count", 1)
 		result[1] = globalLimit - 1 
 		result[2] = singleLimit - 1 
+		result[3] = "#IpGlobalInfo == 0 Area"
 		return result
 	end
 
@@ -27,19 +26,22 @@ const Script = `
 	if #IpSingleInfo == 0 then 
 		redis.call('HMSET', singleKey, "Count", 1)
 		result[2] = singleLimit - 1
+		result[3] = "#IpSingleInfo == 0 Area"
 	end
 
-	local globalExpired = ARGV[4]
-	local singleExpired = ARGV[5]
+	local globalExpired = ARGV[3]
+	local singleExpired = ARGV[4]
 
 	if globalExpired == "true" then 
 		redis.call('HMSET', globalKey, "Count", 1)
 		result[1] = globalLimit - 1
+		result[3] = "global expired area"
 	end
 
 	if singleExpired == "true" then
 		redis.call('HMSET', singleKey, "Count", 1)
 		result[2] = singleLimit - 1
+		result[3] = "single expired area"
 		if globalExpired == "true" then 
 			return result
 		end
@@ -51,6 +53,7 @@ const Script = `
 	if globalCount < globalLimit then 
 		local NewglobalCount = redis.call('HINCRBY', globalKey, "Count", 1)
 		result[1] = globalLimit - NewglobalCount
+		result[3] = "global Count < limit"
 	else
 		result[1] = -1
 	end
@@ -58,6 +61,7 @@ const Script = `
 	if singleCount < singleLimit then 
 		local NewsingleCount = redis.call('HINCRBY', singleKey, "Count", 1)
 		result[2] = singleLimit - NewsingleCount
+		result[3] = "single Count < limit"
 	else 
 		result[2] = -1
 	end

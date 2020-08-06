@@ -202,5 +202,6 @@ func (rs *Rates) UpdateDeadLine(path, method string) {
 func (rs *Rates) UpdateAllDeadLine() {
 	for _, rate := range rs.items {
 		rate.updateDeadLine()
+		// log.Printf("{%s, %s}, {%s} => deadline: {%d, %s}\n", rate.Path, rate.Method, rate.Period, rate.getDeadLine(), rate.getDeadLineFormat())
 	}
 }
