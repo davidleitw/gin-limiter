@@ -9,61 +9,41 @@ const Script = `
 	local globalLimit = tonumber(ARGV[1])
 	local singleLimit = tonumber(ARGV[2])
 
-	local IpGlobalInfo = redis.call('HGETALL', globalKey)
+	local IpGlobalInfo = redis.call('HGETALL', globalKey) 
 	local IpSingleInfo = redis.call('HGETALL', singleKey)
-	
-	-- 該Ip第一次訪問
-	if #IpGlobalInfo == 0 then
+
+	local globalExpired = ARGV[3] -- if true, IpGlobalInfo = "1", else = "0"
+	local singleExpired = ARGV[4]
+
+	if #IpGlobalInfo == 0 or globalExpired == "1" then 
 		redis.call('HMSET', globalKey, "Count", 1)
 		redis.call('HMSET', singleKey, "Count", 1)
-		result[1] = globalLimit - 1 
-		result[2] = singleLimit - 1 
-		result[3] = "#IpGlobalInfo == 0 Area"
+		result[1] = globalLimit - 1
+		result[2] = singleLimit - 1
 		return result
 	end
 
-	-- 從來沒有訪問過這個path
-	if #IpSingleInfo == 0 then 
-		redis.call('HMSET', singleKey, "Count", 1)
-		result[2] = singleLimit - 1
-		result[3] = "#IpSingleInfo == 0 Area"
-		IpSingleInfo = redis.call('HGETALL', singleKey)
-	end
-
-	local globalExpired = ARGV[3]
-	local singleExpired = ARGV[4]
-
-	if globalExpired == true then 
-		redis.call('HMSET', globalKey, "Count", 1)
-		result[1] = globalLimit - 1
-		result[3] = "global expired area"
-	end
-
-	if singleExpired == true then
-		redis.call('HMSET', singleKey, "Count", 1)
-		result[2] = singleLimit - 1
-		result[3] = "single expired area"
-		if globalExpired == "true" then 
-			return result
+	if #IpSingleInfo == 0 or singleExpired == "1" then 
+		if tonumber(IpGlobalInfo[2]) < globalLimit then 
+			result[1] = globalLimit - redis.call('HINCRBY', globalKey, "Count", 1)
 		end
+		redis.call('HMSET', singleKey, "Count", 1)
+		result[2] = singleLimit - 1
+		return result
 	end
 
-	local globalCount = tonumber(IpGlobalInfo[2]) 
-	local singleCount = tonumber(IpSingleInfo[2]) 
+	local gc = tonumber(IpGlobalInfo[2]) -- global count 
+	local sc = tonumber(IpSingleInfo[2]) -- single count 
 
-	if globalCount < globalLimit then 
-		local NewglobalCount = redis.call('HINCRBY', globalKey, "Count", 1)
-		result[1] = globalLimit - NewglobalCount
-		result[3] = "global Count < limit"
-	else
+	if gc < globalLimit then 
+		result[1] = globalLimit - redis.call('HINCRBY', globalKey, "Count", 1)
+	else 
 		result[1] = -1
 	end
-	
-	if singleCount < singleLimit then 
-		local NewsingleCount = redis.call('HINCRBY', singleKey, "Count", 1)
-		result[2] = singleLimit - NewsingleCount
-		result[3] = "single Count < limit"
-	else 
+
+	if sc < singleLimit then 
+		result[2] = singleLimit - redis.call('HINCRBY', singleKey, "Count", 1)
+	else
 		result[2] = -1
 	end
 
@@ -72,13 +52,55 @@ const Script = `
 
 const TestScript = `
 	local result = {}
+	local test = ARGV[1]
+	local test2 = "TestHash"
 
-	-- 測試註解
-	result[5] = 28
-	result[1] = 10
-	result[2] = 20 + 2
-	result[3] = KEYS[1]
-	result[4] = ARGV[1]
-	
+	-- local c = redis.call('HMSET', test2, "Count", 1)
+	local t = redis.call('HINCRBY', test2, "Count", 1) 
+
+	result[1] = redis.call('HINCRBY', test2, "Count", 1)
+	result[2] = 4 - redis.call('HINCRBY', test2, "Count", 1)
+	return result
+`
+
+const TempScript = `
+	-- 該Ip第一次訪問
+	if #IpGlobalInfo == 0 or globelExpired == "1" then
+		redis.call('HMSET', globalKey, "Count", 1)
+		redis.call('HMSET', singleKey, "Count", 1)
+		result[1] = globalLimit - 1
+		result[2] = singleLimit - 1
+		return result
+	end
+
+	local isFirst = false
+	-- 從來沒有訪問過這個path
+	if #IpSingleInfo == 0 or singleExpired == "1" then 
+		isFirst = true
+		redis.call('HMSET', singleKey, "Count", 1)
+		IpSingleInfo = redis.call('HGETALL', singleKey)
+	end
+
+	local globalCount = tonumber(IpGlobalInfo[2]) 
+	local singleCount = tonumber(IpSingleInfo[2]) 
+
+	if globalCount < globalLimit then 
+		local NewglobalCount = redis.call('HINCRBY', globalKey, "Count", 1)
+		result[1] = globalLimit - NewglobalCount
+	else
+		result[1] = -1
+	end
+
+	if singleCount < singleLimit then 
+		if isFirst == false then 
+			local NewsingleCount = redis.call('HINCRBY', singleKey, "Count", 1)
+			result[2] = singleLimit - NewsingleCount
+		else
+			result[2] = singleLimit - 1 
+		end		
+	else 
+		result[2] = -1
+	end
+
 	return result
 `
