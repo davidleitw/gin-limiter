@@ -21,7 +21,7 @@ func NewServer() *gin.Engine {
 	_ = limitControl.Add("/api/post2", "1-M", "post", 200)
 	_ = limitControl.Add("/post3", "24-H", "post", 120)
 
-	server.Use(limiter.LimitMiddle(limitControl))
+	server.Use(limitControl.GenerateLimitMiddleWare())
 
 	server.POST("/post1", post1) // /post1
 
