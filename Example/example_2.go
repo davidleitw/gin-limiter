@@ -15,7 +15,7 @@ func main() {
 		DB:       0,
 	})
 	arg1 := false
-	sHA, _ := rdb.ScriptLoad(context.Background(), limiter.TestScript).Result()
+	sHA, _ := rdb.ScriptLoad(context.Background(), limiter.Script).Result()
 	// 		result := lc.RedisDB.EvalSha(context.Background(), lc.GetShaScript(), keys, args)
 
 	for i := 0; i < 5; i++ {

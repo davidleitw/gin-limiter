@@ -49,16 +49,3 @@ const Script = `
 
 	return result
 `
-
-const TestScript = `
-	local result = {}
-	local test = ARGV[1]
-	local test2 = "TestHash"
-
-	-- local c = redis.call('HMSET', test2, "Count", 1)
-	local t = redis.call('HINCRBY', test2, "Count", 1) 
-
-	result[1] = redis.call('HINCRBY', test2, "Count", 1)
-	result[2] = 4 - redis.call('HINCRBY', test2, "Count", 1)
-	return result
-`

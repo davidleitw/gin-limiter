@@ -22,7 +22,7 @@ type LimitController struct {
 func createController(rdb *redis.Client, gr *GlobalRate, sr Rates, record bool, mode string) *LimitController {
 	var logger *log.Logger
 	if mode == "debug" {
-		logger = log.New(os.Stdout, "[Limitter-debug] ", log.Ldate|log.Ltime)
+		logger = log.New(os.Stdout, "[Limit] ", log.Ldate|log.Ltime)
 	}
 
 	return &LimitController{
