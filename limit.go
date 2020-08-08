@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -15,9 +16,15 @@ type LimitController struct {
 	Record      bool
 	script      string
 	mode        string
+	logger      *log.Logger
 }
 
 func createController(rdb *redis.Client, gr *GlobalRate, sr Rates, record bool, mode string) *LimitController {
+	var logger *log.Logger
+	if mode == "debug" {
+		logger = log.New(os.Stdout, "[Limitter-debug] ", log.Ldate|log.Ltime)
+	}
+
 	return &LimitController{
 		RedisDB:     rdb,
 		globalRate:  gr,
@@ -25,6 +32,7 @@ func createController(rdb *redis.Client, gr *GlobalRate, sr Rates, record bool, 
 		Record:      record,
 		script:      "",
 		mode:        mode,
+		logger:      logger,
 	}
 }
 

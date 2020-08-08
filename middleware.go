@@ -2,7 +2,6 @@ package limiter
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -51,10 +50,10 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 			}
 
 			// debug area
-			log.Printf("now: %d, global deadline = %d, single router deadline = %d\n", now, lc.globalRate.GetDeadLine(), lc.routerRates.GetDeadLine(path, method))
-			log.Printf("global expired = %t, single expired = %t\n", globalExpired, singleExpired)
-			log.Printf("Request Information: global{Key:%s, Limit:%d} single{Key:%s, Limit:%d}\n", globalKey, globalLimit, singleKey, singleLimit)
-			log.Println("result = ", results)
+			lc.logger.Printf("now: %d, global deadline = %d, single router deadline = %d\n", now, lc.globalRate.GetDeadLine(), lc.routerRates.GetDeadLine(path, method))
+			lc.logger.Printf("global expired = %t, single expired = %t\n", globalExpired, singleExpired)
+			lc.logger.Printf("Request Information: global{Key:%s, Limit:%d} single{Key:%s, Limit:%d}\n", globalKey, globalLimit, singleKey, singleLimit)
+			lc.logger.Println("result = ", results)
 
 			result := results.([]interface{})
 			globalRemaining := result[0].(int64) // global 剩餘次數
@@ -63,7 +62,7 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 			if globalRemaining == -1 || singleRemaining == -1 {
 				// code 429, to many request
 				ctx.JSON(http.StatusTooManyRequests, "to many request!")
-				ctx.Header("Retry-After", lc.globalRate.GetDeadLineFormat())
+				ctx.Header("X-RateLimit-Reset", lc.globalRate.GetDeadLineFormat())
 				ctx.Abort()
 			}
 

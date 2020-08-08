@@ -10,6 +10,7 @@ import (
 
 func NewServer() *gin.Engine {
 	server := gin.Default()
+
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
