@@ -26,7 +26,7 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 			globalLimit := lc.GetGlobalLimit() // Global 限制次數
 			// globalDeadLine := lc.globalRate.GetDeadLine()
 
-			singleKey := path + "/" + method + ":" + ipAddress // /a/post/post:123.456.78.9
+			singleKey := path + "/" + method + ":" + ipAddress // /a/post/POST:123.456.78.9
 			singleLimit := lc.GetSingleLimit(path, method)     // Single router 限制次數
 			// singleDeadLine := lc.routerRates.GetDeadLine(path, method)
 
@@ -48,12 +48,6 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 				ctx.JSON(http.StatusInternalServerError, err)
 				ctx.Abort()
 			}
-
-			// debug area
-			// lc.logger.Printf("now: %d, global deadline = %d, single router deadline = %d\n", now, lc.globalRate.GetDeadLine(), lc.routerRates.GetDeadLine(path, method))
-			// lc.logger.Printf("global expired = %t, single expired = %t\n", globalExpired, singleExpired)
-			// lc.logger.Printf("Request Information: global{Key:%s, Limit:%d} single{Key:%s, Limit:%d}\n", globalKey, globalLimit, singleKey, singleLimit)
-			// lc.logger.Println("result = ", results)
 
 			result := results.([]interface{})
 			globalRemaining := result[0].(int64) // global 剩餘次數

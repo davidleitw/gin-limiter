@@ -8,47 +8,36 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-func NewServer() *gin.Engine {
-	server := gin.Default()
-
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
-	limitControl, _ := limiter.DefaultController(rdb, "24-M", 100, "debug")
-	_ = limitControl.Add("/post1", "20-S", "post", 4)
-	_ = limitControl.Add("/api/post2", "1-M", "post", 8)
-	_ = limitControl.Add("/post3", "24-H", "post", 10)
-
-	server.Use(limitControl.GenerateLimitMiddleWare())
-
-	server.POST("/post1", post1) // /post1
-
-	server.POST("/api/post2", post2) // /api/post2
-
-	server.POST("/post3", post3) // /post3
-
-	return server
-}
-
-func post1(ctx *gin.Context) {
-	ctx.String(200, ctx.FullPath())
-}
-
-func post2(ctx *gin.Context) {
-	ctx.String(200, ctx.FullPath())
-}
-
-func post3(ctx *gin.Context) {
-	ctx.String(200, ctx.ClientIP())
-}
-
 func main() {
-	server := NewServer()
+	server := gin.Default()
+	rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379", Password: "", DB: 0})
 
-	err := server.Run(":8080")
+	limitControl, err := limiter.DefaultController(rdb, "24-M", 100, "debug") // Debug mode, each 24 minutes can send request 100 times.
 	if err != nil {
 		log.Println(err)
+	}
+
+	err = limitControl.Add("/ExamplePost1", "POST", "4-M", 20)
+	if err != nil {
+		log.Println(err)
+	}
+
+	err = limitControl.Add("/ExampleGet1", "GET", "20-H", 40)
+	if err != nil {
+		log.Println(err)
+	}
+	server.Use(limitControl.GenerateLimitMiddleWare())
+
+	server.POST("/ExamplePost1", func(ctx *gin.Context) {
+		ctx.String(200, "Hello Example! In ExamplePost1")
+	})
+
+	server.GET("/ExampleGet1", func(ctx *gin.Context) {
+		ctx.String(200, "Hello Example! In ExampleGet1")
+	})
+
+	err = server.Run()
+	if err != nil {
+		log.Println("gin server run error = ", err)
 	}
 }

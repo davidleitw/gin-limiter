@@ -117,7 +117,7 @@ func newGlobalRate(command string, limit int) (*GlobalRate, error) {
 	return &gRate, nil
 }
 
-func newSingleRate(path, command, method string, limit int) (*singleRate, error) {
+func newSingleRate(path, method, command string, limit int) (*singleRate, error) {
 	var sRate singleRate
 	var period time.Duration
 

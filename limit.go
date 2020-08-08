@@ -94,11 +94,12 @@ func (lc *LimitController) GetSingleLimit(path, method string) int {
 }
 
 // 根據router資訊新增一個對於該router的limiter
-func (lc *LimitController) Add(path, command, method string, limit int) error {
-	sRate, err := newSingleRate(path, command, method, limit)
+func (lc *LimitController) Add(path, method, command string, limit int) error {
+	sRate, err := newSingleRate(path, method, command, limit)
 	if err != nil {
 		return err
 	}
+
 	lc.routerRates.Append(sRate)
 	return nil
 }
