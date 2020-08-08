@@ -28,6 +28,10 @@ func (gr *GlobalRate) GetDeadLine() int64 {
 	return gr.deadLine
 }
 
+func (gr *GlobalRate) GetDeadLineFormat() string {
+	return gr.deadLineFormat
+}
+
 // local ip rate
 type singleRate struct {
 	Path           string // router path

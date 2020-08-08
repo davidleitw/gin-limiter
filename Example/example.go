@@ -15,11 +15,11 @@ func NewServer() *gin.Engine {
 		Password: "",
 		DB:       0,
 	})
-	limitControl, _ := limiter.DefaultController(rdb, "24-M", 21000, "debug")
+	limitControl, _ := limiter.DefaultController(rdb, "24-M", 100, "debug")
 	// limitControl, _ := limiter.DefaultController(rdb, "24-H", 21000, "release")
-	_ = limitControl.Add("/post1", "20-S", "post", 120)
-	_ = limitControl.Add("/api/post2", "1-M", "post", 200)
-	_ = limitControl.Add("/post3", "24-H", "post", 120)
+	_ = limitControl.Add("/post1", "20-S", "post", 4)
+	_ = limitControl.Add("/api/post2", "1-M", "post", 8)
+	_ = limitControl.Add("/post3", "24-H", "post", 10)
 
 	server.Use(limitControl.GenerateLimitMiddleWare())
 

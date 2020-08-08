@@ -105,8 +105,4 @@ func (lc *LimitController) Init() {
 	}
 
 	lc.SetShaScript(SHA)
-	// TestResult := lc.RedisDB.EvalSha(context.Background(), SHA, []string{"key1"}, []interface{}{"arg1"})
-	// fmt.Println("Test Result = ", TestResult.Val())
-	// t := TestResult.Val().([]interface{})
-	// fmt.Println("TestResult[0] = ", t)
 }

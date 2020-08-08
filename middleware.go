@@ -3,6 +3,8 @@ package limiter
 import (
 	"context"
 	"log"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,13 +43,33 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 			keys := []string{globalKey, singleKey}
 			args := []interface{}{globalLimit, singleLimit, globalExpired, singleExpired}
 
-			result := lc.RedisDB.EvalSha(context.Background(), lc.GetShaScript(), keys, args)
+			results, err := lc.RedisDB.EvalSha(context.Background(), lc.GetShaScript(), keys, args).Result()
+			if err != nil {
+				// code 500, server error
+				ctx.JSON(http.StatusInternalServerError, err)
+				ctx.Abort()
+			}
 
+			// debug area
 			log.Printf("now: %d, global deadline = %d, single router deadline = %d\n", now, lc.globalRate.GetDeadLine(), lc.routerRates.GetDeadLine(path, method))
 			log.Printf("global expired = %t, single expired = %t\n", globalExpired, singleExpired)
 			log.Printf("Request Information: global{Key:%s, Limit:%d} single{Key:%s, Limit:%d}\n", globalKey, globalLimit, singleKey, singleLimit)
-			log.Println("result = ", result.Val())
+			log.Println("result = ", results)
 
+			result := results.([]interface{})
+			globalRemaining := result[0].(int64) // global 剩餘次數
+			singleRemaining := result[1].(int64) // single router 剩餘次數
+
+			if globalRemaining == -1 || singleRemaining == -1 {
+				// code 429, to many request
+				ctx.JSON(http.StatusTooManyRequests, "to many request!")
+				ctx.Header("Retry-After", lc.globalRate.GetDeadLineFormat())
+				ctx.Abort()
+			}
+
+			ctx.Header("X-RateLimit-Limit", strconv.Itoa(globalLimit))
+			ctx.Header("X-RateLimit-Remaining", strconv.FormatInt(globalRemaining, 10))
+			ctx.Header("X-RateLimit-Reset", lc.globalRate.GetDeadLineFormat())
 			ctx.Next()
 		}
 	} else {
@@ -80,9 +102,27 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 			keys := []string{globalKey, singleKey}
 			args := []interface{}{globalLimit, singleLimit, globalExpired, singleExpired}
 
-			result := lc.RedisDB.EvalSha(context.Background(), lc.GetShaScript(), keys, args)
-			log.Println(result.Val())
+			results, err := lc.RedisDB.EvalSha(context.Background(), lc.GetShaScript(), keys, args).Result()
+			if err != nil {
+				// code 500, server error
+				ctx.JSON(http.StatusInternalServerError, err)
+				ctx.Abort()
+			}
 
+			result := results.([]interface{})
+			globalRemaining := result[0].(int64) // global 剩餘次數
+			singleRemaining := result[1].(int64) // single router 剩餘次數
+
+			if globalRemaining == -1 || singleRemaining == -1 {
+				// code 429, to many request
+				ctx.JSON(http.StatusTooManyRequests, "To many request! Please check header X-RateLimit-Reset.")
+				ctx.Header("X-RateLimit-Reset", lc.globalRate.GetDeadLineFormat())
+				ctx.Abort()
+			}
+
+			ctx.Header("X-RateLimit-Limit", strconv.Itoa(globalLimit))
+			ctx.Header("X-RateLimit-Remaining", strconv.FormatInt(globalRemaining, 10))
+			ctx.Header("X-RateLimit-Reset", lc.globalRate.GetDeadLineFormat())
 			ctx.Next()
 		}
 	}
