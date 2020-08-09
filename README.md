@@ -16,11 +16,13 @@
 ### Installation
 
 ```go 
+go get github.com/go-redis/redis/v8
 go get github.com/davidleitw/gin-limiter 
 ``` 
 
 **Import**
 ```go 
+import "github.com/go-redis/redis/v8"
 import limiter "github.com/davidleitw/gin-limiter"
 ```
 <hr>
@@ -65,7 +67,14 @@ import limiter "github.com/davidleitw/gin-limiter"
         ctx.String(200, "Hello Example! In ExampleGet1")
     })
 ```
-完整程式碼請看 [Example](https://github.com/davidleitw/gin-limiter/tree/master/Example)
+
+```go
+    limiter.DefaultController(rdb, "24-M", 100, "debug") // 一開始添加的是全域limit, 對於這個server來說, 限制單一Ip24分鐘內最多存取100次。
+
+    limitControl.Add("/ExampleGet1", "GET", "20-H", 40) // 代表對於這個route, 限制單一Ip20小時內最多存取40次。
+```
+
+完整程式碼請看 [Example](https://github.com/davidleitw/gin-limiter/blob/master/Example/example.go)
 
 <hr>
 
@@ -86,7 +95,7 @@ import limiter "github.com/davidleitw/gin-limiter"
 
 <br>
 
-- 請求違反的globol limit，或者是single route limit其中一項。
+- 請求違反globol limit，或者是single route limit其中一項。 (超過規定的存取次數)
     回傳Http429(Too many Requests) 
     ```shell
     若是global的造訪次數已經用完, 則會回傳
@@ -95,6 +104,13 @@ import limiter "github.com/davidleitw/gin-limiter"
     若是single route的造訪次數已經用完, 則會回傳
         X-RateLimit-Reset-single     -> 此route下次重製時間
     ```
+
+<hr>
+
+### Reference
+- https://github.com/ulule/limiter
+- https://github.com/jpillora/ipfilter
+- https://github.com/KennyChenFight/dcard-simple-demo
 
 <hr>
 
