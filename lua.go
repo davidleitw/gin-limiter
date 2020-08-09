@@ -26,6 +26,8 @@ const Script = `
 	if #IpSingleInfo == 0 or singleExpired == "1" then 
 		if tonumber(IpGlobalInfo[2]) < globalLimit then 
 			result[1] = globalLimit - redis.call('HINCRBY', globalKey, "Count", 1)
+		else 
+			result[1] = -1
 		end
 		redis.call('HMSET', singleKey, "Count", 1)
 		result[2] = singleLimit - 1

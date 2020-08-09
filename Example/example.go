@@ -12,7 +12,7 @@ func main() {
 	server := gin.Default()
 	rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379", Password: "", DB: 0})
 
-	limitControl, err := limiter.DefaultController(rdb, "24-M", 100, "debug") // Debug mode, each 24 minutes can send 100 times request from single Ip..
+	limitControl, err := limiter.DefaultController(rdb, "24-M", 100, "debug") // Debug mode, each 24 minutes can send 100 times request from single Ip.
 	if err != nil {
 		log.Println(err)
 	}
@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	server.Use(limitControl.GenerateLimitMiddleWare())
+	server.Use(limitControl.GenerateLimitMiddleWare()) // create middleware
 
 	server.POST("/ExamplePost1", func(ctx *gin.Context) {
 		ctx.String(200, "Hello Example! In ExamplePost1")

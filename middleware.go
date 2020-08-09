@@ -24,11 +24,9 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 
 			globalKey := "Source:" + ipAddress // Source:123.456.78.9
 			globalLimit := lc.GetGlobalLimit() // Global 限制次數
-			// globalDeadLine := lc.globalRate.GetDeadLine()
 
 			singleKey := path + "/" + method + ":" + ipAddress // /a/post/POST:123.456.78.9
 			singleLimit := lc.GetSingleLimit(path, method)     // Single router 限制次數
-			// singleDeadLine := lc.routerRates.GetDeadLine(path, method)
 
 			if now > lc.globalRate.GetDeadLine() {
 				globalExpired = true
@@ -85,11 +83,9 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 
 			globalKey := "Source:" + ipAddress // Source:123.456.78.9
 			globalLimit := lc.GetGlobalLimit() // Global 限制次數
-			// globalDeadLine := lc.globalRate.GetDeadLine()
 
 			singleKey := path + "/" + method + ":" + ipAddress // /a/post/post:123.456.78.9
 			singleLimit := lc.GetSingleLimit(path, method)     // Single router 限制次數
-			// singleDeadLine := lc.routerRates.GetDeadLine(path, method)
 
 			if now > lc.globalRate.GetDeadLine() {
 				globalExpired = true
