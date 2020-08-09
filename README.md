@@ -12,7 +12,6 @@
         <img src="https://img.shields.io/github/stars/davidleitw/gin-limiter" alt="GitHub stars">
     </a>
 </p>
-<hr>
 
 ### Installation
 
@@ -67,7 +66,38 @@ import limiter "github.com/davidleitw/gin-limiter"
     })
 ```
 完整程式碼請看 [Example](https://github.com/davidleitw/gin-limiter/tree/master/Example)
+
 <hr>
+
+### Response 
+- 請求符合規定, 無論是global limit，或者是該次request所造訪的single route limit皆沒有違反。 
+    ```shell
+    Return header:
+
+    X-RateLimit-Limit-global     -> 單一Ip在期間內總共能造訪幾次 (global)
+    X-RateLimit-Remaining-global -> 單一Ip剩餘造訪次數
+    X-RateLimit-Reset-global     -> 下次重製剩餘次數的時間
+
+    X-RateLimit-Limit-single     -> 單一Ip對於造訪route內總共能造訪幾次 (single)
+    X-RateLimit-Remaining-single -> 單一Ip對於造訪route剩餘造訪次數
+    X-RateLimit-Reset-single     -> 此route下次重製時間
+    ```
+
+
+<br>
+
+- 請求違反的globol limit，或者是single route limit其中一項。
+    回傳Http429(Too many Requests) 
+    ```shell
+    若是global的造訪次數已經用完, 則會回傳
+        X-RateLimit-Reset-global     -> 下次重製剩餘次數的時間
+
+    若是single route的造訪次數已經用完, 則會回傳
+        X-RateLimit-Reset-single     -> 此route下次重製時間
+    ```
+
+<hr>
+
 ### Licenses
 
 All source code is licensed under the [MIT License](https://github.com/davidleitw/gin-limiter/blob/master/LICENSE).

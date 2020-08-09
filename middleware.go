@@ -54,10 +54,14 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 			lc.logger.Printf("|%s|  %s  \"%s\" | global remain=%d | single remain=%d | DeadLine{%s/%s}\n", ipAddress, method, path,
 				globalRemaining, singleRemaining, lc.globalRate.GetDeadLineFormat(), lc.routerRates.GetDeadLineFormat(path, method))
 
-			if globalRemaining == -1 || singleRemaining == -1 {
-				// code 429, to many request
-				ctx.JSON(http.StatusTooManyRequests, "to many request!")
+			if globalRemaining == -1 {
+				ctx.JSON(http.StatusTooManyRequests, "To many request!")
 				ctx.Header("X-RateLimit-Reset-global", lc.globalRate.GetDeadLineFormat())
+				ctx.Abort()
+			}
+
+			if singleRemaining == -1 {
+				ctx.JSON(http.StatusTooManyRequests, "To many request!")
 				ctx.Header("X-RateLimit-Reset-single", lc.routerRates.GetDeadLineFormat(path, method))
 				ctx.Abort()
 			}
@@ -110,10 +114,14 @@ func (lc *LimitController) GenerateLimitMiddleWare() gin.HandlerFunc {
 			globalRemaining := result[0].(int64) // global 剩餘次數
 			singleRemaining := result[1].(int64) // single router 剩餘次數
 
-			if globalRemaining == -1 || singleRemaining == -1 {
-				// code 429, to many request
-				ctx.JSON(http.StatusTooManyRequests, "To many request! Please check header X-RateLimit-Reset.")
+			if globalRemaining == -1 {
+				ctx.JSON(http.StatusTooManyRequests, "To many request!")
 				ctx.Header("X-RateLimit-Reset-global", lc.globalRate.GetDeadLineFormat())
+				ctx.Abort()
+			}
+
+			if singleRemaining == -1 {
+				ctx.JSON(http.StatusTooManyRequests, "To many request!")
 				ctx.Header("X-RateLimit-Reset-single", lc.routerRates.GetDeadLineFormat(path, method))
 				ctx.Abort()
 			}
