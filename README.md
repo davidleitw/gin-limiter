@@ -69,7 +69,7 @@ import limiter "github.com/davidleitw/gin-limiter"
 ```
 
 
-- #####單獨解釋
+- ##### 單獨解釋
 ```go
     limiter.DefaultController(rdb, "24-M", 100, "debug") // 一開始添加的是全域limit, 對於這個server來說, 限制單一Ip24分鐘內最多存取100次。
 
