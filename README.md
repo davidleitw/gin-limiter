@@ -13,7 +13,9 @@
     </a>
 </p>
 <hr>
+
 ### Installation
+
 ```go 
 go get github.com/davidleitw/gin-limiter 
 ``` 
@@ -23,6 +25,7 @@ go get github.com/davidleitw/gin-limiter
 import limiter "github.com/davidleitw/gin-limiter"
 ```
 <hr>
+
 ### Quickstart
 
 - ##### Create limit controller object
