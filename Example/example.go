@@ -12,17 +12,17 @@ func main() {
 	server := gin.Default()
 	rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379", Password: "", DB: 0})
 
-	limitControl, err := limiter.DefaultController(rdb, "24-M", 100, "debug") // Debug mode, each 24 minutes can send request 100 times.
+	limitControl, err := limiter.DefaultController(rdb, "24-M", 100, "debug") // Debug mode, each 24 minutes can send 100 times request from single Ip..
 	if err != nil {
 		log.Println(err)
 	}
 
-	err = limitControl.Add("/ExamplePost1", "POST", "4-M", 20)
+	err = limitControl.Add("/ExamplePost1", "POST", "4-M", 20) // "/ExamplePost1" route, each 4 minutes can send 20 times request from single Ip.
 	if err != nil {
 		log.Println(err)
 	}
 
-	err = limitControl.Add("/ExampleGet1", "GET", "20-H", 40)
+	err = limitControl.Add("/ExampleGet1", "GET", "20-H", 40) // ".ExampleGet1" route, each 20 hours can send 40 times request from single Ip.
 	if err != nil {
 		log.Println(err)
 	}
@@ -36,7 +36,7 @@ func main() {
 		ctx.String(200, "Hello Example! In ExampleGet1")
 	})
 
-	err = server.Run()
+	err = server.Run(":8080")
 	if err != nil {
 		log.Println("gin server run error = ", err)
 	}
