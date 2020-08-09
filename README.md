@@ -43,7 +43,7 @@ import limiter "github.com/davidleitw/gin-limiter"
 - ##### Debug mode can show some information on the command.
 ![](https://imgur.com/KeZsQpQ.png)
 
-- ##### 搭配gin，針對每個不同的route做出獨立的限制
+- ##### For each route add a sub-limiter. 
 ```go
     server := gin.Default()
 
@@ -69,42 +69,38 @@ import limiter "github.com/davidleitw/gin-limiter"
 ```
 
 
-- ##### 單獨解釋
-```go
-    limiter.DefaultController(rdb, "24-M", 100, "debug") // 一開始添加的是全域limit, 對於這個server來說, 限制單一Ip24分鐘內最多存取100次。
-
-    limitControl.Add("/ExampleGet1", "GET", "20-H", 40) // 代表對於這個route, 限制單一Ip20小時內最多存取40次。
-```
-
-完整程式碼請看 [Example](https://github.com/davidleitw/gin-limiter/blob/master/Example/example.go)
+See more [Example](https://github.com/davidleitw/gin-limiter/blob/master/Example/example.go) and full code. 
 
 <hr>
 
 ### Response 
-- 請求符合規定, 無論是global limit，或者是該次request所造訪的single route limit皆沒有違反。 
+- Request is pass, global limit or single route limit is legal. Then we return header with some limiter information. 
     ```shell
     Return header:
 
-    X-RateLimit-Limit-global     -> 單一Ip在期間內總共能造訪幾次 (global)
-    X-RateLimit-Remaining-global -> 單一Ip剩餘造訪次數
-    X-RateLimit-Reset-global     -> 下次重製剩餘次數的時間
+    X-RateLimit-Limit-global     -> limit request time which single ip can send request for the server. 
+    X-RateLimit-Remaining-global -> remaining time which single ip can send request for the server.
+    X-RateLimit-Reset-global     -> time for global limit reset. 
 
-    X-RateLimit-Limit-single     -> 單一Ip對於造訪route內總共能造訪幾次 (single)
-    X-RateLimit-Remaining-single -> 單一Ip對於造訪route剩餘造訪次數
-    X-RateLimit-Reset-single     -> 此route下次重製時間
+    X-RateLimit-Limit-single     -> limit request time which single ip can send request for the single route.
+    X-RateLimit-Remaining-single -> remaining time which single ip can send request for the single route.
+    X-RateLimit-Reset-single     -> time for single route limit reset. 
+
     ```
 
 
 <br>
 
-- 請求違反globol limit，或者是single route limit其中一項。 (超過規定的存取次數)
-    回傳Http429(Too many Requests) 
+- When the global limit or single route limit is reached, a `429` HTTP status code is sent.
+    and add the header with:
     ```shell
-    若是global的造訪次數已經用完, 則會回傳
-        X-RateLimit-Reset-global     -> 下次重製剩餘次數的時間
+    Return header:
+    
+    If global remaining request time < 0
+        X-RateLimit-Reset-global     -> return global limit reset time. 
 
-    若是single route的造訪次數已經用完, 則會回傳
-        X-RateLimit-Reset-single     -> 此route下次重製時間
+    If single remaining request time < 0
+        X-RateLimit-Reset-single     -> return this single route limit reset time.
     ```
 
 <hr>
