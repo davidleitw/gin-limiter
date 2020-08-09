@@ -5,8 +5,8 @@
     <a href="https://www.gnu.org/licenses/"> 
         <img src="https://img.shields.io/github/license/davidleitw/goGamer.svg" alt="License">
     </a>
-    <a href="http://hits.dwyl.com/davidleitw/gin-limiter">
-        <img src=http://hits.dwyl.com/davidleitw/gin-limiter.svg alt="HitCount">
+    <a href="http://hits.dwyl.io/davidleitw/gin-limiter">
+        <img src=http://hits.dwyl.io/davidleitw/gin-limiter.svg alt="HitCount">
     </a>
     <a href="https://github.com/davidleitw/gin-limiter/stargazers"> 
         <img src="https://img.shields.io/github/stars/davidleitw/gin-limiter" alt="GitHub stars">
