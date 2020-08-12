@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Test
 func TestNewGlobalRate(t *testing.T) {
 	type args struct {
 		command string
