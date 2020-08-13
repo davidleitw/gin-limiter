@@ -8,6 +8,7 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+// Expected updates in the future
 func NewServer() *gin.Engine {
 	server := gin.Default()
 
@@ -16,18 +17,14 @@ func NewServer() *gin.Engine {
 		Password: "",
 		DB:       0,
 	})
-	limitControl, _ := limiter.DefaultController(rdb, "24-M", 100, "debug")
-	_ = limitControl.Add("/post1", "post", "20-S", 4)
-	_ = limitControl.Add("/api/post2", "post", "1-M", 8)
-	_ = limitControl.Add("/post3", "post", "24-H", 10)
+	dispatcher, _ := limiter.DefaultController(rdb, "debug")
+	diepatcher.Set("24-M", 100)
 
-	server.Use(limitControl.GenerateLimitMiddleWare())
+	server.POST("/post1", dispatcher.middle("20-S", 30), post1) // /post1
 
-	server.POST("/post1", post1) // /post1
+	server.POST("/api/post2", dispatcher.middle("15-M", 40), post2) // /api/post2
 
-	server.POST("/api/post2", post2) // /api/post2
-
-	server.POST("/post3", post3) // /post3
+	server.POST("/post3", dispatcher.middle("11-D", 10), post3) // /post3
 
 	return server
 }
