@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-const TimeFormat = "2006-01-02 15:04:05"
-
 // global ip rate
 type GlobalRate struct {
 	Command        string
