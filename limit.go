@@ -1,15 +1,19 @@
 package limiter
 
 import (
+	"context"
 	"errors"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 )
 
+// for the deadline time format.
 const TimeFormat = "2006-01-02 15:04:05"
 
 // self define error
@@ -28,14 +32,22 @@ var timeDict = map[string]time.Duration{
 }
 
 type Dispatcher struct {
-	limit    int
-	deadline int64
-	period   time.Duration
+	limit       int
+	deadline    int64
+	shaScript   map[string]string
+	period      time.Duration
+	redisClient *redis.Client
 }
 
 // create a limit dispatcher object with command and limit request number.
-func LimitDispatcher(command string, limit int) (*Dispatcher, error) {
-	var period time.Duration
+func LimitDispatcher(command string, limit int, rdb *redis.Client) (*Dispatcher, error) {
+
+	dispatcher := new(Dispatcher)
+	_, err := rdb.Ping(context.Background()).Result()
+	if err != nil {
+		return nil, err
+	}
+	dispatcher.redisClient = rdb
 
 	values := strings.Split(command, "-")
 	if len(values) != 2 {
@@ -51,18 +63,31 @@ func LimitDispatcher(command string, limit int) (*Dispatcher, error) {
 		return nil, CommandError
 	}
 
-	// limit should > 0
-	if limit <= 0 {
-		return nil, LimitError
-	}
-
 	if t, ok := timeDict[strings.ToUpper(values[1])]; ok {
-		period := time.Duration(unit) * t
+		dispatcher.period = time.Duration(unit) * t
 	} else {
 		return nil, FormatError
 	}
 
-	return &Dispatcher{limit: limit, deadline: 0, period: period}, nil
+	// limit should > 0
+	if limit <= 0 {
+		return nil, LimitError
+	}
+	dispatcher.limit = limit
+
+	resetSHA, err := dispatcher.redisClient.ScriptLoad(context.Background(), ResetScript).Result()
+	if err != nil {
+		return nil, err
+	}
+	dispatcher.shaScript["restart"] = resetSHA
+
+	normalSHA, err := dispatcher.redisClient.ScriptLoad(context.Background(), Script).Result()
+	if err != nil {
+		return nil, err
+	}
+	dispatcher.shaScript["normal"] = normalSHA
+
+	return dispatcher, nil
 }
 
 func (dispatch *Dispatcher) ParseCommand(command string) (time.Duration, error) {
@@ -104,6 +129,10 @@ func (dispatch *Dispatcher) GetDeadLine() int64 {
 	return dispatch.deadline
 }
 
+func (dispatch *Dispatcher) GetSHAScript(index string) string {
+	return dispatch.shaScript[index]
+}
+
 // get the deadline with format 2006-01-02 15:04:05
 func (dispatch *Dispatcher) GetDeadLineWithString() string {
 	return time.Unix(dispatch.deadline, 0).Format(TimeFormat)
@@ -112,6 +141,7 @@ func (dispatch *Dispatcher) GetDeadLineWithString() string {
 func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFunc {
 	// get the deadline for global limit
 	deadline := dispatch.GetDeadLine()
+	// t, _ := dispatch.ParseCommand(command)
 
 	return func(ctx *gin.Context) {
 		now := time.Now().Unix()
@@ -122,12 +152,39 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 		routeKey := path + method + clientIp // for single route limit in redis.
 		staticKey := clientIp                // for global limit search in redis.
 
+		routeLimit := limit
+		staticLimit := dispatch.limit
+
+		keys := []string{routeKey, staticKey}
+		args := []interface{}{routeLimit, staticLimit}
+
 		// mean global limit should be reset.
 		if now > deadline {
 			dispatch.UpdateDeadLine()
-
-			// run all restart lua script
+			_, err := dispatch.redisClient.EvalSha(context.Background(), dispatch.GetSHAScript("reset"), keys).Result()
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, err)
+				ctx.Abort()
+			}
 			ctx.Next()
+		}
+
+		results, err := dispatch.redisClient.EvalSha(context.Background(), dispatch.GetSHAScript("normal"), keys, args).Result()
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, err)
+			ctx.Abort()
+		}
+
+		result := results.([]interface{})
+		routeRemaining := result[0].(int64)
+		staticRemaining := result[1].(int64)
+
+		if routeRemaining == -1 {
+
+		}
+
+		if staticRemaining == -1 {
+
 		}
 	}
 }

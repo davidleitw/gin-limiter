@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	limiter "github.com/davidleitw/gin-limiter"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -41,10 +39,10 @@ func post3(ctx *gin.Context) {
 }
 
 func main() {
-	server := NewServer()
+	// server := NewServer()
 
-	err := server.Run(":8080")
-	if err != nil {
-		log.Println(err)
-	}
+	// err := server.Run(":8080")
+	// if err != nil {
+	// 	log.Println(err)
+	// }
 }

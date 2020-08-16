@@ -4,8 +4,12 @@ import (
 	"fmt"
 )
 
+func T() int {
+	return 80
+}
+
 func Test() func(i int) int {
-	i := 10
+	i := T()
 	return func(input int) int {
 		fmt.Println("i = ", i)
 		if input < i {
