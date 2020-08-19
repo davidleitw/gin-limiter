@@ -141,7 +141,7 @@ func (dispatch *Dispatcher) GetDeadLineWithString() string {
 func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFunc {
 	// get the deadline for global limit
 	deadline := dispatch.GetDeadLine()
-	// t, _ := dispatch.ParseCommand(command)
+	t, _ := dispatch.ParseCommand(command)
 
 	return func(ctx *gin.Context) {
 		now := time.Now().Unix()
@@ -161,7 +161,9 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 		// mean global limit should be reset.
 		if now > deadline {
 			dispatch.UpdateDeadLine()
-			_, err := dispatch.redisClient.EvalSha(context.Background(), dispatch.GetSHAScript("reset"), keys).Result()
+			routeDeadline := time.Now().Add(t).Unix()
+			_, err := dispatch.redisClient.EvalSha(context.Background(), dispatch.GetSHAScript("reset"), keys, routeDeadline).Result()
+
 			if err != nil {
 				ctx.JSON(http.StatusInternalServerError, err)
 				ctx.Abort()
