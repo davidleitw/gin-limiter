@@ -123,6 +123,8 @@
 
 <hr>
 
+If you want to know the updated progress, please check `noSingleVersion` branch. 
+
 ### License
 
 All source code is licensed under the [MIT License](./LICENSE).

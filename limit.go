@@ -139,8 +139,6 @@ func (dispatch *Dispatcher) GetDeadLineWithString() string {
 }
 
 func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFunc {
-	// get the deadline for global limit
-	deadline := dispatch.GetDeadLine()
 	t, _ := dispatch.ParseCommand(command)
 
 	return func(ctx *gin.Context) {
@@ -148,6 +146,8 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 		path := ctx.FullPath()
 		method := ctx.Request.Method
 		clientIp := ctx.ClientIP()
+		deadline := dispatch.GetDeadLine()
+		routeDeadline := time.Now().Add(t).Unix()
 
 		routeKey := path + method + clientIp // for single route limit in redis.
 		staticKey := clientIp                // for global limit search in redis.
@@ -156,17 +156,24 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 		staticLimit := dispatch.limit
 
 		keys := []string{routeKey, staticKey}
-		args := []interface{}{routeLimit, staticLimit}
+		args := []interface{}{routeLimit, staticLimit, routeDeadline, now}
 
 		// mean global limit should be reset.
 		if now > deadline {
 			dispatch.UpdateDeadLine()
-			routeDeadline := time.Now().Add(t).Unix()
 			_, err := dispatch.redisClient.EvalSha(context.Background(), dispatch.GetSHAScript("reset"), keys, routeDeadline).Result()
 			if err != nil {
 				ctx.JSON(http.StatusInternalServerError, err)
 				ctx.Abort()
 			}
+
+			gLimit := dispatch.GetLimit()
+			ctx.Header("X-RateLimit-Limit-global", strconv.Itoa(gLimit))
+			ctx.Header("X-RateLimit-Remaining-global", strconv.Itoa(gLimit-1))
+			ctx.Header("X-RateLimit-Reset-global", dispatch.GetDeadLineWithString())
+			ctx.Header("X-RateLimit-Limit-route", strconv.Itoa(limit))
+			ctx.Header("X-RateLimit-Remaining-route", strconv.Itoa(limit-1))
+			ctx.Header("X-RateLimit-Reset-route", time.Unix(routeDeadline, 0).Format(TimeFormat))
 			ctx.Next()
 		}
 
