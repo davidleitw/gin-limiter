@@ -163,7 +163,6 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 			dispatch.UpdateDeadLine()
 			routeDeadline := time.Now().Add(t).Unix()
 			_, err := dispatch.redisClient.EvalSha(context.Background(), dispatch.GetSHAScript("reset"), keys, routeDeadline).Result()
-
 			if err != nil {
 				ctx.JSON(http.StatusInternalServerError, err)
 				ctx.Abort()
