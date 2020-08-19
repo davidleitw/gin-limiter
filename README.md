@@ -123,7 +123,7 @@
 
 <hr>
 
-if you want to check the new version for this project, you can see branch-noSingleVersion. 
+If you want to know the updated progress, please check noSingleVersion branch. 
 
 ### License
 
