@@ -17,6 +17,7 @@ const Script = `
 	local routeLimit = ARGV[1]
 	local staticLimit = ARGV[2]
 	local routeDeadline = ARGV[3]
+	local now = ARGV[4]
 
 	local routeInfo = redis.call('HGETALL', routeKey)
 	local staticCount = redis.call('HGET', staticKey)
@@ -27,6 +28,7 @@ const Script = `
 		redis.call('HSET', routeKey, "Count", 1, "Deadline", routeDeadline)
 		result[1] = staticLimit - 1
 		result[2] = routeLimit - 1
+		result[3] = routeDeadline 
 		return result
 	end 
 
@@ -38,11 +40,25 @@ const Script = `
 		end
 		redis.call('HSET', routeKey, "Count", 1, "Deadline", routeDeadline)
 		result[2] = routeLimit - 1
+		result[3] = routeDeadline
 		return result
 	end
 
-	local rCount = tonumber(routeInfo[2])
+	local rDead = tonumber(routeInfo[4]) --  expired time	
+	local rCount = tonumber(routeInfo[2])  
 	local sCount = tonumber(staticCount)
+	
+	if rDead > now then -- 過期
+		if tonumber(staticCount) < staticLimit then 
+			result[1] = staticLimit - redis.call('HINCRBY', staticKey, "Count", 1)
+			else 
+			result[1] = -1
+		end
+		redis.call('HSET', routeKey, "Count", 1, "Deadline", routeDeadline)
+		result[2] = routeLimit - 1
+		result[3] = routeDeadline
+		return result
+	end
 
 	if sCount < staticLimit then 
 		result[1] = staticLimit - redis.call('HINCRBY', staticKey, "Count", 1)
@@ -56,15 +72,17 @@ const Script = `
 		result[2] = -1
 	end
 
+	result[3] = rDead
+
 	return result
 `
 
 const TestScript = `
 	local result = {}
-	local test = redis.call('HGETALL', "test")
+	local test = redis.call('HGETALL', "tes")
 	local t = redis.call('HGET', "test1", "val1")
-	result[1] = test
-	result[2] = type(t)
-
-	return result
+	
+	local ree = test[4]
+	local re = type(ree)
+	return re
 `
