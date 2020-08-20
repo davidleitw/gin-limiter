@@ -22,6 +22,7 @@ var (
 	CommandError = errors.New("The command of first number should > 0.")
 	FormatError  = errors.New("Please check the format with your input.")
 	MethodError  = errors.New("Please check the method is one of http method.")
+	ServerError  = errors.New("StatusInternalServerError, please wait a minute.")
 )
 
 var timeDict = map[string]time.Duration{
@@ -143,14 +144,12 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 
 	return func(ctx *gin.Context) {
 		now := time.Now().Unix()
-		path := ctx.FullPath()
-		method := ctx.Request.Method
 		clientIp := ctx.ClientIP()
 		deadline := dispatch.GetDeadLine()
 		routeDeadline := time.Now().Add(t).Unix()
 
-		routeKey := path + method + clientIp // for single route limit in redis.
-		staticKey := clientIp                // for global limit search in redis.
+		routeKey := ctx.FullPath() + ctx.Request.Method + clientIp // for single route limit in redis.
+		staticKey := clientIp                                      // for global limit search in redis.
 
 		routeLimit := limit
 		staticLimit := dispatch.limit
@@ -184,15 +183,27 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 		}
 
 		result := results.([]interface{})
-		routeRemaining := result[0].(int64)
-		staticRemaining := result[1].(int64)
-
-		if routeRemaining == -1 {
-
-		}
+		routeRemaining := result[0].(int)
+		staticRemaining := result[1].(int)
+		routedeadline := time.Unix(result[2].(int64), 0).Format(TimeFormat)
 
 		if staticRemaining == -1 {
-
+			ctx.JSON(http.StatusTooManyRequests, "Too many request!")
+			ctx.Header("X-RateLimit-Reset-global", dispatch.GetDeadLineWithString())
+			ctx.Abort()
 		}
+
+		if routeRemaining == -1 {
+			ctx.JSON(http.StatusTooManyRequests, "Too many request!")
+			ctx.Header("X-RateLimit-Reset-single", routedeadline)
+			ctx.Abort()
+		}
+
+		ctx.Header("X-RateLimit-Limit-global", strconv.Itoa(staticLimit))
+		ctx.Header("X-RateLimit-Remaining-global", strconv.Itoa(staticRemaining))
+		ctx.Header("X-RateLimit-Reset-global", dispatch.GetDeadLineWithString())
+		ctx.Header("X-RateLimit-Limit-route", strconv.Itoa(routeLimit))
+		ctx.Header("X-RateLimit-Remaining-route", strconv.Itoa(routeRemaining))
+		ctx.Header("X-RateLimit-Reset-route", routedeadline)
 	}
 }
