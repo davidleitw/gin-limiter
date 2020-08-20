@@ -80,14 +80,16 @@ func LimitDispatcher(command string, limit int, rdb *redis.Client) (*Dispatcher,
 	if err != nil {
 		return nil, err
 	}
-	dispatcher.shaScript["restart"] = resetSHA
 
 	normalSHA, err := dispatcher.redisClient.ScriptLoad(context.Background(), Script).Result()
 	if err != nil {
 		return nil, err
 	}
-	dispatcher.shaScript["normal"] = normalSHA
 
+	shaScript := make(map[string]string)
+	shaScript["reset"] = resetSHA
+	shaScript["normal"] = normalSHA
+	dispatcher.shaScript = shaScript
 	return dispatcher, nil
 }
 
@@ -147,7 +149,6 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 		clientIp := ctx.ClientIP()
 		deadline := dispatch.GetDeadLine()
 		routeDeadline := time.Now().Add(t).Unix()
-
 		routeKey := ctx.FullPath() + ctx.Request.Method + clientIp // for single route limit in redis.
 		staticKey := clientIp                                      // for global limit search in redis.
 
@@ -162,13 +163,12 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 			dispatch.UpdateDeadLine()
 			_, err := dispatch.redisClient.EvalSha(context.Background(), dispatch.GetSHAScript("reset"), keys, routeDeadline).Result()
 			if err != nil {
+				log.Println("err = ", err)
 				ctx.JSON(http.StatusInternalServerError, err)
 				ctx.Abort()
 			}
-
-			gLimit := dispatch.GetLimit()
-			ctx.Header("X-RateLimit-Limit-global", strconv.Itoa(gLimit))
-			ctx.Header("X-RateLimit-Remaining-global", strconv.Itoa(gLimit-1))
+			ctx.Header("X-RateLimit-Limit-global", strconv.Itoa(staticLimit))
+			ctx.Header("X-RateLimit-Remaining-global", strconv.Itoa(staticLimit-1))
 			ctx.Header("X-RateLimit-Reset-global", dispatch.GetDeadLineWithString())
 			ctx.Header("X-RateLimit-Limit-route", strconv.Itoa(limit))
 			ctx.Header("X-RateLimit-Remaining-route", strconv.Itoa(limit-1))
@@ -178,32 +178,34 @@ func (dispatch *Dispatcher) MiddleWare(command string, limit int) gin.HandlerFun
 
 		results, err := dispatch.redisClient.EvalSha(context.Background(), dispatch.GetSHAScript("normal"), keys, args).Result()
 		if err != nil {
+			log.Println("Result error area, error = ", err)
 			ctx.JSON(http.StatusInternalServerError, err)
 			ctx.Abort()
 		}
 
 		result := results.([]interface{})
-		routeRemaining := result[0].(int)
-		staticRemaining := result[1].(int)
+		routeRemaining := result[0].(int64)
+		staticRemaining := result[1].(int64)
 		routedeadline := time.Unix(result[2].(int64), 0).Format(TimeFormat)
 
 		if staticRemaining == -1 {
-			ctx.JSON(http.StatusTooManyRequests, "Too many request!")
+			ctx.JSON(http.StatusTooManyRequests, dispatch.GetDeadLineWithString())
 			ctx.Header("X-RateLimit-Reset-global", dispatch.GetDeadLineWithString())
 			ctx.Abort()
 		}
 
 		if routeRemaining == -1 {
-			ctx.JSON(http.StatusTooManyRequests, "Too many request!")
+			ctx.JSON(http.StatusTooManyRequests, routedeadline)
 			ctx.Header("X-RateLimit-Reset-single", routedeadline)
 			ctx.Abort()
 		}
 
 		ctx.Header("X-RateLimit-Limit-global", strconv.Itoa(staticLimit))
-		ctx.Header("X-RateLimit-Remaining-global", strconv.Itoa(staticRemaining))
+		ctx.Header("X-RateLimit-Remaining-global", strconv.FormatInt(staticRemaining, 10))
 		ctx.Header("X-RateLimit-Reset-global", dispatch.GetDeadLineWithString())
 		ctx.Header("X-RateLimit-Limit-route", strconv.Itoa(routeLimit))
-		ctx.Header("X-RateLimit-Remaining-route", strconv.Itoa(routeRemaining))
+		ctx.Header("X-RateLimit-Remaining-route", strconv.FormatInt(routeRemaining, 10))
 		ctx.Header("X-RateLimit-Reset-route", routedeadline)
+		ctx.Next()
 	}
 }
