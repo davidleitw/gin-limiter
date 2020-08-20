@@ -123,7 +123,7 @@
 
 <hr>
 
-If you want to know the updated progress, please check noSingleVersion branch. 
+If you want to know the updated progress, please check `noSingleVersion` branch. 
 
 ### License
 

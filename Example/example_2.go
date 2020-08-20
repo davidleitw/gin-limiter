@@ -17,14 +17,14 @@ func NewServer() *gin.Engine {
 		Password: "",
 		DB:       0,
 	})
-	dispatcher, _ := limiter.DefaultController(rdb, "debug")
-	diepatcher.Set("24-M", 100)
 
-	server.POST("/post1", dispatcher.middle("20-S", 30), post1) // /post1
+	dispatcher, _ := limiter.LimitDispatcher("2-M", 5, rdb)
 
-	server.POST("/api/post2", dispatcher.middle("15-M", 40), post2) // /api/post2
+	server.POST("/post1", dispatcher.MiddleWare("20-S", 30), post1) // /post1
 
-	server.POST("/post3", dispatcher.middle("11-D", 10), post3) // /post3
+	server.POST("/api/post2", dispatcher.MiddleWare("15-M", 40), post2) // /api/post2
+
+	server.POST("/post3", dispatcher.MiddleWare("11-D", 10), post3) // /post3
 
 	return server
 }

@@ -1,53 +1,93 @@
 package limiter
 
+const ResetScript = `	
+	local routeKey = KEYS[1]
+	local staticKey = KEYS[2]
+	local routeDeadline = ARGV[1]
+
+	redis.call('HSET', staticKey, "Count", 1)
+	redis.call('HSET', routeKey, "Count", 1, "Deadline", routeDeadline)
+	return 0
+`
+
 const Script = `
 	local result = {}
-		
-	local globalKey = KEYS[1] 
-	local singleKey = KEYS[2]
-	
-	local globalLimit = tonumber(ARGV[1])
-	local singleLimit = tonumber(ARGV[2])
+	local routeKey = KEYS[1]
+	local staticKey = KEYS[2]
 
-	local IpGlobalInfo = redis.call('HGETALL', globalKey) 
-	local IpSingleInfo = redis.call('HGETALL', singleKey)
+	local routeLimit = tonumber(ARGV[1])
+	local staticLimit = tonumber(ARGV[2])
+	local routeDeadline = tonumber(ARGV[3]) -- 如果過期或者初次造訪 要更新的時間
+	local now = tonumber(ARGV[4])
 
-	local globalExpired = ARGV[3] -- if true, IpGlobalInfo = "1", else = "0"
-	local singleExpired = ARGV[4]
+	local staticCount = redis.call('HGET', staticKey, "Count")
 
-	if #IpGlobalInfo == 0 or globalExpired == "1" then 
-		redis.call('HMSET', globalKey, "Count", 1)
-		redis.call('HMSET', singleKey, "Count", 1)
-		result[1] = globalLimit - 1
-		result[2] = singleLimit - 1
+	-- First time visit
+	if not staticCount then 
+		redis.call('HSET', staticKey, "Count", 1)
+		redis.call('HSET', routeKey, "Count", 1, "Deadline", routeDeadline)
+		result[1] = staticLimit - 1
+		result[2] = routeLimit - 1
+		result[3] = routeDeadline 
 		return result
-	end
+	end 
 
-	if #IpSingleInfo == 0 or singleExpired == "1" then 
-		if tonumber(IpGlobalInfo[2]) < globalLimit then 
-			result[1] = globalLimit - redis.call('HINCRBY', globalKey, "Count", 1)
+	local routeInfo = redis.call('HGETALL', routeKey)
+
+	if #routeInfo == 0 then 
+		if tonumber(staticCount) < staticLimit then
+			result[1] = staticLimit - redis.call('HINCRBY', staticKey, "Count", 1)
 		else 
 			result[1] = -1
 		end
-		redis.call('HMSET', singleKey, "Count", 1)
-		result[2] = singleLimit - 1
+		redis.call('HSET', routeKey, "Count", 1, "Deadline", routeDeadline)
+		result[2] = routeLimit - 1
+		result[3] = routeDeadline
 		return result
 	end
 
-	local gc = tonumber(IpGlobalInfo[2]) -- global count 
-	local sc = tonumber(IpSingleInfo[2]) -- single count 
+	local rDead = tonumber(routeInfo[4]) --  expired time	
+	local rCount = tonumber(routeInfo[2])  
+	local sCount = tonumber(staticCount)
+	
+	if rDead < now then -- 過期
+		if tonumber(staticCount) < staticLimit then 
+			result[1] = staticLimit - redis.call('HINCRBY', staticKey, "Count", 1)
+		else 
+			result[1] = -1
+		end
+		redis.call('HSET', routeKey, "Count", 1, "Deadline", routeDeadline)
+		result[2] = routeLimit - 1
+		result[3] = routeDeadline
+		return result
+	end
 
-	if gc < globalLimit then 
-		result[1] = globalLimit - redis.call('HINCRBY', globalKey, "Count", 1)
+	if sCount < staticLimit then 
+		result[1] = staticLimit - redis.call('HINCRBY', staticKey, "Count", 1)
 	else 
 		result[1] = -1
 	end
 
-	if sc < singleLimit then 
-		result[2] = singleLimit - redis.call('HINCRBY', singleKey, "Count", 1)
-	else
+	if rCount < routeLimit then 
+		result[2] = redis.call('HINCRBY', routeKey, "Count", 1)
+	else 
 		result[2] = -1
 	end
 
+	result[3] = rDead
 	return result
+`
+
+const TestScript = `
+	local result = {}
+	local staticCount = redis.call('HGET', "127.0.0.1", "Count")
+	
+	if not staticCount then 
+		return 87
+	else 
+		return staticCount
+	end
+	
+	result[1] = type(staticCount)
+	return retsult 
 `
