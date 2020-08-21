@@ -32,14 +32,12 @@
 
 ### Quickstart
 
-- Create limit controller object
+- Create a limit middleware dispatcher object
     ```go
     // Set redis client
     rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379", Password: "", DB: 0})
 
-
-    // Debug mode, each 24 minutes can send 100 times request from single Ip.
-    limitControl, err := limiter.DefaultController(rdb, "24-M", 100, "debug")
+    dispatcher, err := limiter.LimitDispatcher("24-M", 100, rdb)
 
     if err != nil {
         log.Println(err)
@@ -47,39 +45,22 @@
 
     ```
 
-    Debug mode will display some information on the terminal.
-    ![](https://imgur.com/KeZsQpQ.png)
-
-- For each route, add a sub-limiter. 
+- Add a middleware to controlling each route. 
     ```go
     server := gin.Default()
 
-    // "/ExamplePost1" route, allows 20 requests every 4 minutes from a single IP address
-    err = limitControl.Add("/ExamplePost1", "POST", "4-M", 20)
+    server.POST("/ExamplePost1", dispatcher.MiddleWare("4-M", 20), func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "Hello ExamplePost1")
+	})
 
-    if err != nil {
-        log.Println(err)
-    }
+	server.GET("/ExampleGet1", dispatcher.MiddleWare("5-M", 10), func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "Hello ExampleGet1")
+	})
 
-
-    // ".ExampleGet1" route, allows 40 ruquests every 20 hours from a single IP address.
-    err = limitControl.Add("/ExampleGet1", "GET", "20-H", 40)
-
-    if err != nil {
-        log.Println(err)
-    }
-
-
-    // Create middleware
-    server.Use(limitControl.GenerateLimitMiddleWare()) 
-
-    server.POST("/ExamplePost1", func(ctx *gin.Context) {
-        ctx.String(200, "Hello Example! In ExamplePost1")
-    })
-
-    server.GET("/ExampleGet1", func(ctx *gin.Context) {
-        ctx.String(200, "Hello Example! In ExampleGet1")
-    })
+	err = server.Run(":8080")
+	if err != nil {
+		log.Println("gin server error = ", err)
+	}
     ```
 
 
@@ -108,10 +89,10 @@
     Return header:
     
     If global remaining request time < 0
-        X-RateLimit-Reset-global     -> return global limit reset time. 
+        return global limit reset time. 
 
     If single remaining request time < 0
-        X-RateLimit-Reset-single     -> return this single route limit reset time.
+        return this single route limit reset time.
     ```
 
 <hr>
