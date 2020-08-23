@@ -64,7 +64,7 @@
     ```
 
 
-    See more examples [HERE](https://github.com/davidleitw/gin-limiter/blob/master/Example/example.go). 
+    See more examples [HERE](https://github.com/davidleitw/gin-limiter/blob/master/Example). 
 
 ---
 
@@ -104,7 +104,7 @@
 
 <hr>
 
-If you want to know the updated progress, please check `noSingleVersion` branch. 
+If you want to know the updated progress, please check `Ipfilter` branch. 
 
 ### License
 
