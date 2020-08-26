@@ -77,17 +77,3 @@ const Script = `
 	result[3] = rDead
 	return result
 `
-
-const TestScript = `
-	local result = {}
-	local staticCount = redis.call('HGET', "127.0.0.1", "Count")
-	
-	if not staticCount then 
-		return 87
-	else 
-		return staticCount
-	end
-	
-	result[1] = type(staticCount)
-	return retsult 
-`
